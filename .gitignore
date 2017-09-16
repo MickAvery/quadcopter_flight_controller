@@ -2,4 +2,8 @@
 build/
 .dep/
 *.swp
+
+#unit tests
+*_unit_test
+
 *err.xml
