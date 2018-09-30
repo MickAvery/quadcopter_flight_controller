@@ -1,4 +1,4 @@
-DRIVERPATH = $(ROOT)/peripheral_devices
+DRIVERPATH = $(ROOT)/drivers
 
 include $(DRIVERPATH)/lsm6dsl/lsm6dsl.mk
 
