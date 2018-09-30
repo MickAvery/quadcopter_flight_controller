@@ -14,7 +14,10 @@ CPPFLAGS=$(INC_DIRS) -std=c++11
 #CXXFLAGS += -include $(CPPUTEST_HOME)/include/CppUTest/MemoryLeakDetectorNewMacros.h
 #CFLAGS += -include $(CPPUTEST_HOME)/include/CppUTest/MemoryLeakDetectorMallocMacros.h
 
-LD_LIBRARIES = -L$(CPPUTEST_HOME)/cpputest_build/lib -lCppUTest -lCppUTestExt \
+LD_LIBRARIES = -L$(CPPUTEST_HOME)/cpputest_build/lib \
+  -L$(CPPUTEST_HOME)/cpputest_build/CppUTest \
+  -L$(CPPUTEST_HOME)/cpputest_build/CppUTestExt \
+  -lCppUTest -lCppUTestExt \
 
 TESTS=lsm6dsl_driver_unit_test
 
