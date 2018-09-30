@@ -8,6 +8,7 @@ addons:
       - cppcheck
 
 script:
+  - make install
   - make
   - make check
   - make cppcheck
