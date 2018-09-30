@@ -1,0 +1,3 @@
+LSM6DSLSRC = $(DRIVERPATH)/lsm6dsl/lsm6dsl.c
+
+LSM6DSLINC = $(DRIVERPATH)/lsm6dsl
