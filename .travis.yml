@@ -9,4 +9,5 @@ addons:
 
 script:
   - make
+  - make check
   - make cppcheck

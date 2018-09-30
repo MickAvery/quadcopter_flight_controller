@@ -224,6 +224,14 @@ ULIBS =
 
 .DEFAULT_GOAL := all
 
+UNIT_TESTS = $(DRIVERTESTS)
+
+check:
+	for test_path in $(UNIT_TESTS) ; do \
+		make -C $$test_path ; \
+	done
+	find . -type f -name *_unit_test -execdir run-parts . -a -c \;
+
 cppcheck:
 	cppcheck --verbose --force --error-exitcode=1 --enable=style . -i third_party/ 2> err.xml
 
