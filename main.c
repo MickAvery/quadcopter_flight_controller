@@ -17,7 +17,15 @@ static void csv(BaseSequentialStream* chp, int argc, char* argv[])
 {
   (void)argc;
   (void)argv;
-  chprintf(chp, "%s\r\n", "Test");
+
+  while(true) {
+    if(((SerialDriver*)chp)->vmt->gett(chp, 100) == 3) {
+      break;
+    }
+
+    chprintf(chp, "%0.1f\t%0.1f\t%0.1f\n", 0.0f, 0.0f, 0.0f);
+    chThdSleepMilliseconds(300);
+  }
 }
 
 static const ShellCommand shellcmds[] =

@@ -515,6 +515,11 @@
 /* Port-specific settings (override port settings defaulted in chcore.h).    */
 /*===========================================================================*/
 
+#define SHELL_MAX_LINE_LENGTH      256
+#define SHELL_USE_ESC_SEQ          TRUE
+#define SHELL_PROMPT_STR           "> "
+#define SHELL_NEWLINE_STR          "\n"
+
 #define SHELL_CMD_EXIT_ENABLED     FALSE
 #define SHELL_CMD_INFO_ENABLED     FALSE
 #define SHELL_CMD_ECHO_ENABLED     FALSE
