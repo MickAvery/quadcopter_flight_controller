@@ -231,7 +231,7 @@ UNIT_TESTS = $(DRIVERTESTS)
 install:
 	@echo "Entering CppUTest directory..."
 	cd $(CPPUTEST)/cpputest_build; \
-	cmake ..; \
+	cmake -D CMAKE_C_COMPILER=gcc CMAKE_CXX_COMPILER=g++ ..; \
 	make; \
 	cd -
 	@echo "Exiting CppUTest directory..."
