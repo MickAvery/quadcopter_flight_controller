@@ -17,12 +17,13 @@ static void csv(BaseSequentialStream* chp, int argc, char* argv[])
 {
   (void)argc;
   (void)argv;
-  chprintf(chp, "Test\r\n");
+  chprintf(chp, "%s\r\n", "Test");
 }
 
 static const ShellCommand shellcmds[] =
 {
-  {"csv", csv}
+  {"csv", csv},
+  {NULL, NULL}
 };
 
 static const ShellConfig shellcfg =

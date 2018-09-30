@@ -515,6 +515,15 @@
 /* Port-specific settings (override port settings defaulted in chcore.h).    */
 /*===========================================================================*/
 
+#define SHELL_CMD_EXIT_ENABLED     FALSE
+#define SHELL_CMD_INFO_ENABLED     FALSE
+#define SHELL_CMD_ECHO_ENABLED     FALSE
+#define SHELL_CMD_SYSTIME_ENABLED  FALSE
+#define SHELL_CMD_MEM_ENABLED      FALSE
+#define SHELL_CMD_THREADS_ENABLED  FALSE
+#define SHELL_CMD_TEST_ENABLED     FALSE
+#define SHELL_CMD_TEST_WA_SIZE     FALSE
+
 #endif  /* CHCONF_H */
 
 /** @} */
