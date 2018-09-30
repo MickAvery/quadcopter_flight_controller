@@ -88,6 +88,8 @@ PROJECT = quadcopter
 # Imported source files and paths
 CHIBIOS = third_party/ChibiOS
 ROOT    = .
+CPPUTEST= third_party/CppUTest
+
 # Startup files.
 include $(CHIBIOS)/os/common/startup/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.mk
 # HAL-OSAL files (optional).
@@ -225,6 +227,14 @@ ULIBS =
 .DEFAULT_GOAL := all
 
 UNIT_TESTS = $(DRIVERTESTS)
+
+install:
+	@echo "Entering CppUTest directory..."
+	cd $(CPPUTEST)/cpputest_build; \
+	cmake ..; \
+	make; \
+	cd -
+	@echo "Exiting CppUTest directory..."
 
 check:
 	for test_path in $(UNIT_TESTS) ; do \
