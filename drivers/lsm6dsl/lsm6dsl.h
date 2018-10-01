@@ -8,6 +8,8 @@
 #ifndef _LSM6DSL_H
 #define _LSM6DSL_H
 
+#include "hal.h"
+
 typedef enum
 {
   LSM6DSL_STATE_STOP = 0,
@@ -18,30 +20,40 @@ typedef enum
 typedef enum
 {
   LSM6DSL_OK = 0,
-  LSM6DSL_ERROR,
+  LSM6DSL_ERROR = -1,
 } lsm6dsl_status_t;
 
+typedef enum
+{
+  LSM6DSL_12_5_Hz = 1,
+  LSM6DSL_26_Hz,
+  LSM6DSL_52_Hz,
+  LSM6DSL_104_Hz,
+  LSM6DSL_208_Hz,
+  LSM6DSL_416_Hz,
+  LSM6DSL_833_Hz,
+  LSM6DSL_1_66_KHz,
+  LSM6DSL_3_33_KHz,
+  LSM6DSL_6_66_KHz,
+  LSM6DSL_ODR_MAX
+} lsm6dsl_odr_t;
+
 typedef struct
 {
-
-} LSM6DSLConfig;
+  I2CDriver* i2c_drv;
+} lsm6dsl_config_t;
 
 typedef struct
 {
-  const LSM6DSLConfig* cfg;
+  const lsm6dsl_config_t* cfg;
   lsm6dsl_state_t state;
-} LSM6DSLHandle;
+} lsm6dsl_handle_t;
+
+extern lsm6dsl_handle_t LSM6DSL_HANDLE;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/**
- * \brief Initialize LSM6DSL handle object
- *
- * \param[out] handle - LSM6DSL handle
- **/
-void lsm6dslObjectInit(LSM6DSLHandle* handle);
 
 /**
  * \brief Start LSM6DSL device
@@ -51,7 +63,7 @@ void lsm6dslObjectInit(LSM6DSLHandle* handle);
  *
  * \return Driver status
  **/
-lsm6dsl_status_t lsm6dslStart(LSM6DSLHandle* handle, const LSM6DSLConfig* cfg);
+lsm6dsl_status_t lsm6dslStart(lsm6dsl_handle_t* handle, const lsm6dsl_config_t* cfg);
 
 #ifdef __cplusplus
 }

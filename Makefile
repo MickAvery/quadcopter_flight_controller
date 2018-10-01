@@ -89,6 +89,7 @@ PROJECT = quadcopter
 CHIBIOS = third_party/ChibiOS
 ROOT    = .
 CPPUTEST= third_party/CppUTest
+TEST_DIR= $(ROOT)/test
 
 # Startup files.
 include $(CHIBIOS)/os/common/startup/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.mk
@@ -220,6 +221,12 @@ ULIBDIR =
 # List all user libraries here
 ULIBS =
 
+TESTLIBDIR = $(CPPUTEST)/cpputest_build/lib \
+  $(CPPUTEST)/cpputest_build/src/CppUTest \
+  $(CPPUTEST)/cpputest_build/src/CppUTestExt
+
+TESTLIBS = CppUTest CppUTestExt
+
 #
 # End of user defines
 ##############################################################################
@@ -236,11 +243,11 @@ install:
 	cd -
 	@echo "Exiting CppUTest directory..."
 
-check:
-	for test_path in $(UNIT_TESTS) ; do \
-		make -C $$test_path ; \
-	done
-	find . -type f -name *_unit_test -execdir run-parts . -a -c \;
+check: CPPFLAGS=-std=c++11 $(patsubst %,-I%,$(INCDIR) $(CPPUTEST)/include .)
+check: CFLAGS=
+check: LD_LIBRARIES=$(patsubst %,-L%,$(TESTLIBDIR)) $(patsubst %,-l%,$(TESTLIBS))
+check: lsm6dsl_unit_test
+	./test/*_unit_test
 
 cppcheck:
 	cppcheck --verbose --force --error-exitcode=1 --enable=style . -i third_party/ 2> err.xml

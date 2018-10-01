@@ -7,40 +7,34 @@
 
 #include "CppUTest/CommandLineTestRunner.h"
 #include "CppUTest/TestHarness.h"
-#include "CppUTestExt/MockSupport_c.h"
+#include "CppUTestExt/MockSupport.h"
 #include "lsm6dsl.h"
 
-TEST_GROUP(LSM6DSLTestGroupSimple)
+I2CDriver i2c;
+
+TEST_GROUP(LSM6DSLStartTestGroup)
 {
-  LSM6DSLHandle hndl;
-  LSM6DSLConfig cfg;
+  lsm6dsl_handle_t* lsm6dsl = &LSM6DSL_HANDLE;
+  const lsm6dsl_config_t cfg = {
+    &i2c
+  };
 
   void setup()
   {
-    lsm6dslObjectInit(&hndl);
   }
 
   void teardown()
   {
-    mock_c()->checkExpectations();
-    mock_c()->clear();
+    mock().checkExpectations();
+    mock().clear();
   }
 };
 
-TEST(LSM6DSLTestGroupSimple, lsm6dslObjectInit)
+TEST(LSM6DSLStartTestGroup, lsm6dslStartSuccess)
 {
-  LONGS_EQUAL(LSM6DSL_STATE_STOP, hndl.state);
-  POINTERS_EQUAL(NULL, hndl.cfg);
-}
-
-TEST(LSM6DSLTestGroupSimple, lsm6dslStartSuccess)
-{
-
-}
-
-TEST(LSM6DSLTestGroupSimple, lsm6dslStartNullArgs)
-{
-
+  mock().expectOneCall("i2cAcquireBus");
+  mock().expectOneCall("i2cReleaseBus");
+  (void)lsm6dslStart(lsm6dsl, &cfg);
 }
 
 int main(int argc, char** argv)
