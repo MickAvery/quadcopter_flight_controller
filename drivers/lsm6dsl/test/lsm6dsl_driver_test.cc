@@ -81,7 +81,7 @@ TEST(LSM6DSLStartTestGroup, lsm6dslStartSuccess)
 {
   uint8_t membuf[16] = {0};
   expect_startup_sequence(&cfg, membuf, 16);
-  (void)lsm6dslStart(lsm6dsl, &cfg);
+  LONGS_EQUAL(LSM6DSL_OK, lsm6dslStart(lsm6dsl, &cfg));
 }
 
 int main(int argc, char** argv)
