@@ -13,7 +13,7 @@
 typedef enum
 {
   LSM6DSL_STATE_STOP = 0,
-  LSM6DSL_STATE_START,
+  LSM6DSL_STATE_RUNNING,
   LSM6DSL_STATE_LOWPOWER
 } lsm6dsl_state_t;
 
@@ -39,12 +39,52 @@ typedef enum
   LSM6DSL_ODR_MAX
 } lsm6dsl_odr_t;
 
+typedef enum
+{
+  LSM6DSL_ACCEL_2G = 0,
+  LSM6DSL_ACCEL_16G,
+  LSM6DSL_ACCEL_4G,
+  LSM6DSL_ACCEL_8G,
+  LSM6DSL_ACCEL_FS_MAX
+} lsm6dsl_accel_fullscale_t;
+
+typedef enum
+{
+  LSM6DSL_GYRO_250DPS = 0,
+  LSM6DSL_GYRO_500DPS,
+  LSM6DSL_GYRO_1000DPS,
+  LSM6DSL_GYRO_2000DPS,
+  LSM6DSL_GYRO_FS_MAX
+} lsm6dsl_gyro_fullscale_t;
+
+/**
+ *
+ */
+typedef struct
+{
+  float acc_x;
+  float acc_y;
+  float acc_z;
+  float gyro_x;
+  float gyro_y;
+  float gyro_z;
+} lsm6dsl_sensor_readings_t;
+
+/**
+ *
+ */
 typedef struct
 {
   I2CDriver* i2c_drv; /**< Pointer to I2C driver handle */
   lsm6dsl_odr_t odr;  /**< Accelerometer and gyroscope sampling rate */
+
+  lsm6dsl_accel_fullscale_t accel_fs;
+  lsm6dsl_gyro_fullscale_t gyro_fs;
 } lsm6dsl_config_t;
 
+/**
+ *
+ */
 typedef struct
 {
   const lsm6dsl_config_t* cfg;
