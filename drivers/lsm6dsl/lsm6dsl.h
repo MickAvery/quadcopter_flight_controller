@@ -21,6 +21,7 @@ typedef enum
 {
   LSM6DSL_OK = 0,
   LSM6DSL_ERROR = -1,
+  LSM6DSL_SERIAL_ERROR = -2
 } lsm6dsl_status_t;
 
 typedef enum
@@ -40,7 +41,8 @@ typedef enum
 
 typedef struct
 {
-  I2CDriver* i2c_drv;
+  I2CDriver* i2c_drv; /**< Pointer to I2C driver handle */
+  lsm6dsl_odr_t odr;  /**< Accelerometer and gyroscope sampling rate */
 } lsm6dsl_config_t;
 
 typedef struct

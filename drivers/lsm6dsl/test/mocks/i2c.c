@@ -6,7 +6,7 @@
 
 #include "CppUTest/CommandLineTestRunner.h"
 #include "CppUTest/TestHarness.h"
-#include "CppUTestExt/MockSupport_c.h"
+#include "CppUTestExt/MockSupport.h"
 #include "hal.h"
 
 msg_t i2cMasterTransmitTimeout(I2CDriver *i2cp,
@@ -15,7 +15,14 @@ msg_t i2cMasterTransmitTimeout(I2CDriver *i2cp,
                                uint8_t *rxbuf, size_t rxbytes,
                                systime_t timeout)
 {
+  (void)i2cp;
+  (void)timeout;
 
+  mock().actualCall("i2cMasterTransmitTimeout")
+        .withParameter("addr", addr)
+        .withParameter("txbuf", txbuf, txbytes).withParameter("txbytes", txbytes)
+        .withOutputParameter("rxbuf", rxbuf).withParameter("rxbytes", rxbytes);
+  return mock().returnIntValueOrDefault(MSG_OK);
 }
 
 msg_t i2cMasterReceiveTimeout(I2CDriver *i2cp,
@@ -23,15 +30,23 @@ msg_t i2cMasterReceiveTimeout(I2CDriver *i2cp,
                               uint8_t *rxbuf, size_t rxbytes,
                               systime_t timeout)
 {
+  (void)i2cp;
+  (void)timeout;
 
+  mock().actualCall("i2cMasterReceiveTimeout")
+        .withParameter("addr", addr)
+        .withOutputParameter("rxbuf", rxbuf).withParameter("rxbytes", rxbytes);
+  return mock().returnIntValueOrDefault(MSG_OK);
 }
 
 void i2cAcquireBus(I2CDriver *i2cp)
 {
-  mock_c()->actualCall("i2cAcquireBus");
+  (void)i2cp;
+  mock().actualCall("i2cAcquireBus");
 }
 
 void i2cReleaseBus(I2CDriver *i2cp)
 {
-  mock_c()->actualCall("i2cReleaseBus");
+  (void)i2cp;
+  mock().actualCall("i2cReleaseBus");
 }

@@ -243,7 +243,7 @@ install:
 	cd -
 	@echo "Exiting CppUTest directory..."
 
-check: CPPFLAGS=-std=c++11 $(patsubst %,-I%,$(INCDIR) $(CPPUTEST)/include .)
+check: CPPFLAGS=-std=c++11 -O0 -ggdb $(patsubst %,-I%,$(INCDIR) $(CPPUTEST)/include .)
 check: CFLAGS=
 check: LD_LIBRARIES=$(patsubst %,-L%,$(TESTLIBDIR)) $(patsubst %,-l%,$(TESTLIBS))
 check: lsm6dsl_unit_test
