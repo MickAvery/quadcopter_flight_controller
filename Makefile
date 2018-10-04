@@ -90,6 +90,7 @@ CHIBIOS = third_party/ChibiOS
 ROOT    = .
 CPPUTEST= third_party/CppUTest
 TEST_DIR= $(ROOT)/test
+TESTOBJDIR= $(ROOT)/test/obj
 
 # Startup files.
 include $(CHIBIOS)/os/common/startup/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.mk
@@ -235,6 +236,9 @@ TESTLIBS = CppUTest CppUTestExt
 
 UNIT_TESTS = $(DRIVERTESTS)
 
+$(TESTOBJDIR):
+	mkdir -p $@
+
 install:
 	@echo "Entering CppUTest directory..."
 	cd $(CPPUTEST)/cpputest_build; \
@@ -246,11 +250,11 @@ install:
 check: CPPFLAGS=-std=c++11 -O0 -ggdb $(patsubst %,-I%,$(INCDIR) $(CPPUTEST)/include .)
 check: CFLAGS=
 check: LD_LIBRARIES=$(patsubst %,-L%,$(TESTLIBDIR)) $(patsubst %,-l%,$(TESTLIBS))
-check: lsm6dsl_unit_test
+check: $(TESTOBJDIR) lsm6dsl_unit_test
 	./test/*_unit_test
 
 cppcheck:
 	cppcheck --verbose --force --error-exitcode=1 --enable=style . -i third_party/ 2> err.xml
 
-RULESPATH = $(CHIBIOS)/os/common/startup/ARMCMx/compilers/GCC
-include $(RULESPATH)/rules.mk
+# RULESPATH = $(CHIBIOS)/os/common/startup/ARMCMx/compilers/GCC
+include $(ROOT)/rules.mk
