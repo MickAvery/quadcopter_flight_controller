@@ -97,8 +97,8 @@ TEST_GROUP(LSM6DSLReadTestGroup)
   const lsm6dsl_config_t cfg = {
     &i2c,
     LSM6DSL_12_5_Hz,
-    LSM6DSL_ACCEL_4G,
-    LSM6DSL_GYRO_1000DPS
+    LSM6DSL_ACCEL_2G,
+    LSM6DSL_GYRO_250DPS
   };
 
   void setup()
@@ -118,11 +118,52 @@ TEST_GROUP(LSM6DSLReadTestGroup)
 
 TEST(LSM6DSLReadTestGroup, lsm6dslTestValues)
 {
-  float accel_values[] = {350.0f, 1.0f, -350.0f};
-  uint16_t accel_raw[] = {0x6916U, 0x0940U, 0x97E9U};
+  uint16_t raw_sensor_bytes[] =
+  {
+    0x2CA4, 0x5949, 0xD35C, /* raw gyroscope bytes */
+    0x1669, 0x4009, 0xE997  /* raw accel bytes */
+  };
 
   float gyro_values[] = {100.0f, 200.0f, -100.0f};
-  float gyro_raw[] = {0xA42CU, 0x4959U, 0x5CD3U};
+  float accel_values[] = {350.0f, 1000.0f, -350.0f};
+
+  uint8_t status_reg = 0x03U;
+
+  lsm6dsl_sensor_readings_t readings;
+
+  mock().expectOneCall("i2cAcquireBus");
+
+  expect_i2c_read(&status_reg, 1, 0x1E, MSG_OK);
+  expect_i2c_read(
+    (uint8_t*)raw_sensor_bytes,
+    sizeof(raw_sensor_bytes),
+    0x22, MSG_OK);
+
+  mock().expectOneCall("i2cReleaseBus");
+
+  LONGS_EQUAL(LSM6DSL_OK, lsm6dslRead(lsm6dsl, &readings));
+
+  DOUBLES_EQUAL(gyro_values[0], readings.gyro_x / 1000.0, 0.1f);
+  DOUBLES_EQUAL(gyro_values[1], readings.gyro_y / 1000.0, 0.1f);
+  DOUBLES_EQUAL(gyro_values[2], readings.gyro_z / 1000.0, 0.1f);
+
+  DOUBLES_EQUAL(accel_values[0], readings.acc_x, 0.1f);
+  DOUBLES_EQUAL(accel_values[1], readings.acc_y, 0.1f);
+  DOUBLES_EQUAL(accel_values[2], readings.acc_z, 0.1f);
+}
+
+TEST(LSM6DSLReadTestGroup, lsm6dslReadingsNotReady)
+{
+  uint8_t status_reg = 0x00U;
+  lsm6dsl_sensor_readings_t readings;
+
+  mock().expectOneCall("i2cAcquireBus");
+
+  expect_i2c_read(&status_reg, 1, 0x1E, MSG_OK);
+
+  mock().expectOneCall("i2cReleaseBus");
+
+  LONGS_EQUAL(LSM6DSL_DATA_NOT_AVAILABLE, lsm6dslRead(lsm6dsl, &readings));
 }
 
 int main(int argc, char** argv)

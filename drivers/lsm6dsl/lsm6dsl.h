@@ -10,6 +10,9 @@
 
 #include "hal.h"
 
+/**
+ * \brief Driver states
+ */
 typedef enum
 {
   LSM6DSL_STATE_STOP = 0,
@@ -17,13 +20,20 @@ typedef enum
   LSM6DSL_STATE_LOWPOWER
 } lsm6dsl_state_t;
 
+/**
+ * \brief Driver return codes
+ */
 typedef enum
 {
-  LSM6DSL_OK = 0,
-  LSM6DSL_ERROR = -1,
-  LSM6DSL_SERIAL_ERROR = -2
+  LSM6DSL_OK = 0, /**< Function call successful */
+  LSM6DSL_ERROR = -1, /**< Generic error code */
+  LSM6DSL_SERIAL_ERROR = -2, /**< Serial bus issue */
+  LSM6DSL_DATA_NOT_AVAILABLE = -3 /**< Sensor readings unavailable */
 } lsm6dsl_status_t;
 
+/**
+ * \brief Possible sensor sampling rates
+ */
 typedef enum
 {
   LSM6DSL_12_5_Hz = 1,
@@ -39,6 +49,9 @@ typedef enum
   LSM6DSL_ODR_MAX
 } lsm6dsl_odr_t;
 
+/**
+ * \brief Possible accelerometer fullscales
+ */
 typedef enum
 {
   LSM6DSL_ACCEL_2G = 0,
@@ -48,6 +61,9 @@ typedef enum
   LSM6DSL_ACCEL_FS_MAX
 } lsm6dsl_accel_fullscale_t;
 
+/**
+ * \brief Possible gyroscope fullscales
+ */
 typedef enum
 {
   LSM6DSL_GYRO_250DPS = 0,
@@ -58,37 +74,41 @@ typedef enum
 } lsm6dsl_gyro_fullscale_t;
 
 /**
- *
+ * \brief Output struct storing sensor readings
  */
 typedef struct
 {
-  float acc_x;
-  float acc_y;
-  float acc_z;
-  float gyro_x;
-  float gyro_y;
-  float gyro_z;
+  float acc_x; /**< Accelerometer X reading in mg */
+  float acc_y; /**< Accelerometer Y reading in mg */
+  float acc_z; /**< Accelerometer Z reading in mg */
+
+  float gyro_x; /**< Gyroscope X reading in mdps */
+  float gyro_y; /**< Gyroscope Y reading in mdps */
+  float gyro_z; /**< Gyroscope Z reading in mdps */
 } lsm6dsl_sensor_readings_t;
 
 /**
- *
+ * \brief Driver configurations
  */
 typedef struct
 {
   I2CDriver* i2c_drv; /**< Pointer to I2C driver handle */
   lsm6dsl_odr_t odr;  /**< Accelerometer and gyroscope sampling rate */
 
-  lsm6dsl_accel_fullscale_t accel_fs;
-  lsm6dsl_gyro_fullscale_t gyro_fs;
+  lsm6dsl_accel_fullscale_t accel_fs; /**< Accelerometer fullscale */
+  lsm6dsl_gyro_fullscale_t gyro_fs; /**< Gyroscope fullscale */
 } lsm6dsl_config_t;
 
 /**
- *
+ * \brief Driver handle
  */
 typedef struct
 {
-  const lsm6dsl_config_t* cfg;
-  lsm6dsl_state_t state;
+  const lsm6dsl_config_t* cfg; /**< Driver configurations */
+  lsm6dsl_state_t state; /**< Driver state */
+
+  float accel_sensitivity; /**< Accelerometer sensitivity */
+  float gyro_sensitivity; /**< Gyroscope sensitivity */
 } lsm6dsl_handle_t;
 
 extern lsm6dsl_handle_t LSM6DSL_HANDLE;
@@ -104,8 +124,20 @@ extern "C" {
  * \param[in]  cfg    - driver configurations
  *
  * \return Driver status
+ * \retval LSM6DSL_OK if call successful
  **/
 lsm6dsl_status_t lsm6dslStart(lsm6dsl_handle_t* handle, const lsm6dsl_config_t* cfg);
+
+/**
+ * \brief Read gyroscope and accelerometer data in mdps and mg respectively
+ *
+ * \param[in]  handle - driver handle
+ * \param[out] vals - output struct to store sensor readings
+ *
+ * \return Driver status
+ * \retval LSM6DSL_OK if call successful
+ */
+lsm6dsl_status_t lsm6dslRead(lsm6dsl_handle_t* handle, lsm6dsl_sensor_readings_t* vals);
 
 #ifdef __cplusplus
 }
