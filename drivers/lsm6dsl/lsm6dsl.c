@@ -13,7 +13,8 @@
 lsm6dsl_handle_t LSM6DSL_HANDLE =
 {
   NULL,
-  LSM6DSL_STATE_STOP
+  LSM6DSL_STATE_STOP,
+  0.0f, 0.0f
 };
 
 /**
@@ -39,14 +40,19 @@ static float gyro_sensitivities_list[LSM6DSL_GYRO_FS_MAX] =
  */
 static systime_t timeout = MS2ST(500U);
 
+/**
+ * \brief LSM6DSL slave address when SDA is grounded
+ */
+uint8_t lsm6dsl_addr = 0b01101010;
+
 /*****************************************
  * Register addresses
  *****************************************/
 
-static i2caddr_t ctrl1_xl_addr   = 0x0010U;
-static i2caddr_t ctrl2_g_addr    = 0x0011U;
-static i2caddr_t status_addr     = 0x001EU;
-static i2caddr_t data_start_addr = 0x0022U;
+static uint8_t ctrl1_xl_addr   = 0x10U;
+static uint8_t ctrl2_g_addr    = 0x11U;
+static uint8_t status_addr     = 0x1EU;
+static uint8_t data_start_addr = 0x22U;
 
 /*****************************************
  * API
@@ -77,9 +83,9 @@ lsm6dsl_status_t lsm6dslStart(lsm6dsl_handle_t* handle, const lsm6dsl_config_t* 
 
   i2cAcquireBus(i2c);
 
-  if(i2cMasterReceiveTimeout(i2c, ctrl1_xl_addr, &ctrl1_xl, 1U, timeout) != MSG_OK) {
+  if(i2cMasterTransmitTimeout(i2c, lsm6dsl_addr, &ctrl1_xl_addr, 1U, &ctrl1_xl, 1U, timeout) != MSG_OK) {
     /* I2C read failed */
-  } else if(i2cMasterReceiveTimeout(i2c, ctrl2_g_addr, &ctrl2_g, 1U, timeout) != MSG_OK) {
+  } else if(i2cMasterTransmitTimeout(i2c, lsm6dsl_addr, &ctrl2_g_addr, 1U, &ctrl2_g, 1U, timeout) != MSG_OK) {
     /* I2C read failed */
   } else {
 
@@ -91,9 +97,12 @@ lsm6dsl_status_t lsm6dslStart(lsm6dsl_handle_t* handle, const lsm6dsl_config_t* 
     ctrl2_g |= (handle->cfg->odr << 4);
     ctrl2_g |= (handle->cfg->gyro_fs << 2);
 
-    if(i2cMasterTransmitTimeout(i2c, ctrl1_xl_addr, &ctrl1_xl, 1, NULL, 0, timeout) != MSG_OK) {
+    uint8_t xl_rx[2] = {ctrl1_xl_addr, ctrl1_xl};
+    uint8_t g_rx[2] = {ctrl2_g_addr, ctrl2_g};
+
+    if(i2cMasterTransmitTimeout(i2c, lsm6dsl_addr, xl_rx, 2, NULL, 0, timeout) != MSG_OK) {
       /* I2C write failed */
-    } else if(i2cMasterTransmitTimeout(i2c, ctrl2_g_addr, &ctrl2_g, 1, NULL, 0, timeout) != MSG_OK) {
+    } else if(i2cMasterTransmitTimeout(i2c, lsm6dsl_addr, g_rx, 2, NULL, 0, timeout) != MSG_OK) {
       /* I2C write failed */
     } else {
       handle->accel_sensitivity = accel_sensitivities_list[handle->cfg->accel_fs];
@@ -135,11 +144,11 @@ lsm6dsl_status_t lsm6dslRead(lsm6dsl_handle_t* handle, lsm6dsl_sensor_readings_t
 
   i2cAcquireBus(i2c);
 
-  if(i2cMasterReceiveTimeout(i2c, status_addr, &status, 1U, timeout) != MSG_OK) {
+  if(i2cMasterTransmitTimeout(i2c, lsm6dsl_addr, &status_addr, 1U, &status, 1U, timeout) != MSG_OK) {
     /* I2C read failed */
   } else if((status & (accel_ready_flag | gyro_ready_flag)) <= 0) {
     ret = LSM6DSL_DATA_NOT_AVAILABLE;
-  } else if(i2cMasterReceiveTimeout(i2c, data_start_addr, (uint8_t*)rawbytes, numbytes, timeout) != MSG_OK) {
+  } else if(i2cMasterTransmitTimeout(i2c, lsm6dsl_addr, &data_start_addr, 1, (uint8_t*)rawbytes, numbytes, timeout) != MSG_OK) {
     /* failed to read raw data bytes */
   } else {
     /* process data */

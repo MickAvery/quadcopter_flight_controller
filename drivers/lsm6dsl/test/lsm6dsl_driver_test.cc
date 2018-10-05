@@ -11,7 +11,8 @@
 #include "CppUTestExt/MockSupport.h"
 #include "lsm6dsl.h"
 
-I2CDriver i2c;
+static I2CDriver i2c;
+static i2caddr_t lsm6dsl_addr = 0b01101010;
 
 static void expect_i2c_read(
   uint8_t* rxbuf,
@@ -46,16 +47,24 @@ static void expect_startup_sequence(
   uint8_t* membuf,
   size_t membytes)
 {
-  membuf[0] = 0x00U;
-  membuf[1] = membuf[0] | (cfg->odr << 4) | (cfg->accel_fs << 2);
-  membuf[2] = membuf[0] | (cfg->odr << 4) | (cfg->gyro_fs << 2);
+  membuf[0] = 0x10U;
+  membuf[1] = 0x00U;
+
+  membuf[2] = 0x11U;
+  membuf[3] = 0x00U;
+
+  membuf[4] = 0x10U;
+  membuf[5] = membuf[0] | (cfg->odr << 4) | (cfg->accel_fs << 2);
+
+  membuf[6] = 0x11U;
+  membuf[7] = membuf[0] | (cfg->odr << 4) | (cfg->gyro_fs << 2);
 
   mock().expectOneCall("i2cAcquireBus");
-  expect_i2c_read(&membuf[0], 1U, 0x0010U, MSG_OK);
-  expect_i2c_read(&membuf[0], 1U, 0x0011U, MSG_OK);
+  expect_i2c_write(&membuf[0], 1U, &membuf[1], 1, lsm6dsl_addr, MSG_OK);
+  expect_i2c_write(&membuf[2], 1U, &membuf[3], 1, lsm6dsl_addr, MSG_OK);
 
-  expect_i2c_write(&membuf[1], 1U, NULL, 0U, 0x0010U, MSG_OK);
-  expect_i2c_write(&membuf[2], 1U, NULL, 0U, 0x0011U, MSG_OK);
+  expect_i2c_write(&membuf[4], 2U, NULL, 0U, lsm6dsl_addr, MSG_OK);
+  expect_i2c_write(&membuf[6], 2U, NULL, 0U, lsm6dsl_addr, MSG_OK);
   mock().expectOneCall("i2cReleaseBus");
 }
 
@@ -127,17 +136,20 @@ TEST(LSM6DSLReadTestGroup, lsm6dslTestValues)
   float gyro_values[] = {100.0f, 200.0f, -100.0f};
   float accel_values[] = {350.0f, 1000.0f, -350.0f};
 
+  uint8_t status_reg_addr= 0x1EU;
   uint8_t status_reg = 0x03U;
+
+  uint8_t read_addr = 0x22U;
 
   lsm6dsl_sensor_readings_t readings;
 
   mock().expectOneCall("i2cAcquireBus");
 
-  expect_i2c_read(&status_reg, 1, 0x1E, MSG_OK);
-  expect_i2c_read(
-    (uint8_t*)raw_sensor_bytes,
-    sizeof(raw_sensor_bytes),
-    0x22, MSG_OK);
+  expect_i2c_write(&status_reg_addr, 1, &status_reg, 1, lsm6dsl_addr, MSG_OK);
+  expect_i2c_write(
+    &read_addr, 1,
+    (uint8_t*)raw_sensor_bytes, sizeof(raw_sensor_bytes),
+    lsm6dsl_addr, MSG_OK);
 
   mock().expectOneCall("i2cReleaseBus");
 
@@ -154,12 +166,13 @@ TEST(LSM6DSLReadTestGroup, lsm6dslTestValues)
 
 TEST(LSM6DSLReadTestGroup, lsm6dslReadingsNotReady)
 {
+  uint8_t status_addr = 0x1EU;
   uint8_t status_reg = 0x00U;
   lsm6dsl_sensor_readings_t readings;
 
   mock().expectOneCall("i2cAcquireBus");
 
-  expect_i2c_read(&status_reg, 1, 0x1E, MSG_OK);
+  expect_i2c_write(&status_addr, 1, &status_reg, 1, lsm6dsl_addr, MSG_OK);
 
   mock().expectOneCall("i2cReleaseBus");
 
