@@ -251,7 +251,7 @@ check: CPPFLAGS=-std=c++11 -O0 -ggdb $(patsubst %,-I%,$(INCDIR) $(CPPUTEST)/incl
 check: CFLAGS=
 check: LD_LIBRARIES=$(patsubst %,-L%,$(TESTLIBDIR)) $(patsubst %,-l%,$(TESTLIBS))
 check: $(TESTOBJDIR) lsm6dsl_unit_test iis2mdc_unit_test
-	run-parts test --exit-on-error
+	run-parts test
 
 cppcheck:
 	cppcheck --verbose --force --error-exitcode=1 --enable=style . -i third_party/ 2> err.xml
