@@ -1,6 +1,6 @@
 IIS2MDC_CUT_DIR=$(IIS2MDC_TEST_DIR)/..
 
-IIS2MDCOBJ=$(addprefix $(TESTOBJDIR)/,iis2mdc.o iis2mdc_driver_test.o)
+IIS2MDCOBJ=$(addprefix $(TESTOBJDIR)/,i2c_iis2mdc.o chsys_iis2mdc.o iis2mdc.o iis2mdc_driver_test.o)
 
 $(TESTOBJDIR)/i2c_iis2mdc.o: $(IIS2MDC_TEST_DIR)/mocks/i2c.c
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(CFLAGS) -o $@ -c $(IIS2MDC_TEST_DIR)/mocks/i2c.c
