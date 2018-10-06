@@ -100,6 +100,7 @@ TEST(LSM6DSLStartTestGroup, lsm6dslStartSuccess)
 
   LONGS_EQUAL(LSM6DSL_OK, lsm6dslStart(&lsm6dsl, &cfg));
   LONGS_EQUAL(LSM6DSL_STATE_RUNNING, lsm6dsl.state);
+  POINTERS_EQUAL(&cfg, lsm6dsl.cfg)
 }
 
 TEST_GROUP(LSM6DSLReadTestGroup)
@@ -205,6 +206,36 @@ TEST_GROUP(LSM6DSLPassThroughTestGroup)
     mock().clear();
   }
 };
+
+TEST(LSM6DSLPassThroughTestGroup, lsm6dslPassThroughSuccessTest)
+{
+  uint8_t membuf[16] = {0};
+
+  mock().expectOneCall("i2cAcquireBus");
+
+  /* read MASTER_CONFIG and set START_CONFIG bit */
+  membuf[0] = 0x1AU; /* MASTER_CONFIG address */
+  membuf[1] = 0x00U; /* MASTER_CONFIG default value */
+  expect_i2c_write(&membuf[0], 1, &membuf[1], 1, lsm6dsl_addr, MSG_OK);
+
+  membuf[2] = 0x1AU; /* MASTER_CONFIG address */
+  membuf[3] = membuf[1] | (1 << 4); /* setting START_CONFIG */
+  expect_i2c_write(&membuf[2], 2, NULL, 0, lsm6dsl_addr, MSG_OK);
+
+  /* reset MASTER_ON, START_CONFIG, and PULL_UP_EN
+   * set PASS_THROUGH_MODE
+   */
+  membuf[4] = 0x1AU;
+  membuf[5] = membuf[3] & ~(1 | (1 << 4) | (1 << 3));
+  membuf[5] |= (1 << 2);
+
+  expect_i2c_write(&membuf[4], 2, NULL, 0, lsm6dsl_addr, MSG_OK);
+
+  mock().expectOneCall("i2cReleaseBus");
+
+  LONGS_EQUAL(LSM6DSL_OK, lsm6dslPassthroughEnable(&lsm6dsl));
+  LONGS_EQUAL(LSM6DSL_STATE_PASSTHROUGH, lsm6dsl.state);
+}
 
 int main(int argc, char** argv)
 {

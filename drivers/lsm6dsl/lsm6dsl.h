@@ -17,7 +17,8 @@ typedef enum
 {
   LSM6DSL_STATE_STOP = 0,
   LSM6DSL_STATE_RUNNING,
-  LSM6DSL_STATE_LOWPOWER
+  LSM6DSL_STATE_LOWPOWER,
+  LSM6DSL_STATE_PASSTHROUGH
 } lsm6dsl_state_t;
 
 /**
@@ -143,6 +144,16 @@ lsm6dsl_status_t lsm6dslStart(lsm6dsl_handle_t* handle, const lsm6dsl_config_t* 
  * \retval LSM6DSL_OK if call successful
  */
 lsm6dsl_status_t lsm6dslRead(lsm6dsl_handle_t* handle, lsm6dsl_sensor_readings_t* vals);
+
+/**
+ * \brief Enable I2C passthrough to allow host MCU to communicate with external magnetometer
+ *
+ * \param[in] handle - LSM6DSL handle
+ *
+ * \return Driver status
+ * \retval LSM6DSL_OK if call successful
+ */
+lsm6dsl_status_t lsm6dslPassthroughEnable(lsm6dsl_handle_t* handle);
 
 #ifdef __cplusplus
 }
