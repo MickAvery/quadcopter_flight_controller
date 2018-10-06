@@ -1,0 +1,9 @@
+IIS2MDC_PATH = $(DRIVERPATH)/iis2mdc
+
+IIS2MDC_TEST_DIR = $(IIS2MDC_PATH)/test
+
+include $(IIS2MDC_TEST_DIR)/iis2mdc_test.mk 
+
+IIS2MDCSRC = $(IIS2MDC_PATH)/iis2mdc.c
+
+IIS2MDCINC = $(IIS2MDC_PATH)
