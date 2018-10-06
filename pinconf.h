@@ -19,4 +19,14 @@
 
 #define UART_PIN_ALTMODE 8
 
+/* I2C pins */
+
+#define I2C_SCL_PORT   GPIOB
+#define I2C_SCL_PADNUM 10
+
+#define I2C_SDA_PORT   GPIOB
+#define I2C_SDA_PADNUM 11
+
+#define I2C_PIN_ALTMODE 4
+
 #endif /* _PINCONF_H */
