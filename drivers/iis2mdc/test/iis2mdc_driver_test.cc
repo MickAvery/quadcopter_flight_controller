@@ -81,6 +81,7 @@ TEST(IIS2MDCStartTestGroup, startFxnTest)
 
   LONGS_EQUAL(IIS2MDC_STATUS_OK, iis2mdcStart(&iis2mdc, &cfg));
   LONGS_EQUAL(IIS2MDC_RUNNING, iis2mdc.state);
+  POINTERS_EQUAL(&cfg, iis2mdc.cfg);
 }
 
 int main(int argc, char** argv)

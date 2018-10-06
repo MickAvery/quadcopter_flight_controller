@@ -44,6 +44,8 @@ iis2mdc_status_t iis2mdcStart(iis2mdc_handle_t* handle, const iis2mdc_config_t* 
 
   iis2mdc_status_t ret = IIS2MDC_STATUS_SERIAL_ERROR;
 
+  handle->cfg = cfg;
+
   uint8_t cfg_reg_a = 0U;
 
   i2cAcquireBus(cfg->i2c);
