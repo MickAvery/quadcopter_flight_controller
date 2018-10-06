@@ -71,13 +71,15 @@ static THD_WORKING_AREA(imuReadThreadWorkingArea, 1024);
 static THD_FUNCTION(imuReadThread, arg)
 {
   (void)arg;
-  lsm6dsl_handle_t* lsm6dsl = &LSM6DSL_HANDLE;
+  lsm6dsl_handle_t lsm6dsl;
 
-  if(lsm6dslStart(lsm6dsl, &lsm6dsl_cfg) == LSM6DSL_OK) {
+  lsm6dslObjectInit(&lsm6dsl);
+
+  if(lsm6dslStart(&lsm6dsl, &lsm6dsl_cfg) == LSM6DSL_OK) {
 
     while(true) {
 
-      (void)lsm6dslRead(lsm6dsl, &readings);
+      (void)lsm6dslRead(&lsm6dsl, &readings);
 
       chThdSleepMilliseconds(10);
 
