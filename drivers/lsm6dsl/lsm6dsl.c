@@ -10,13 +10,6 @@
 #include "osal.h"
 #include "lsm6dsl.h"
 
-lsm6dsl_handle_t LSM6DSL_HANDLE =
-{
-  NULL,
-  LSM6DSL_STATE_STOP,
-  0.0f, 0.0f
-};
-
 /**
  * \brief Accelerometer sensitivities corresponding to
  *        configured fullscale
@@ -57,6 +50,19 @@ static uint8_t data_start_addr = 0x22U;
 /*****************************************
  * API
  *****************************************/
+
+/**
+ * \brief Initialize driver handle
+ *
+ * \param[out] handle - LSM6DSL handle
+ */
+void lsm6dslObjectInit(lsm6dsl_handle_t* handle)
+{
+  chDbgCheck(handle!= NULL);
+
+  handle->state = LSM6DSL_STATE_STOP;
+  handle->cfg = NULL;
+}
 
 /**
  * \brief Start LSM6DSL device

@@ -111,11 +111,16 @@ typedef struct
   float gyro_sensitivity; /**< Gyroscope sensitivity */
 } lsm6dsl_handle_t;
 
-extern lsm6dsl_handle_t LSM6DSL_HANDLE;
-
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+ * \brief Initialize driver handle
+ *
+ * \param[out] handle - LSM6DSL handle
+ */
+void lsm6dslObjectInit(lsm6dsl_handle_t* handle);
 
 /**
  * \brief Start LSM6DSL device
