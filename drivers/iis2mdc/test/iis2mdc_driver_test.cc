@@ -84,6 +84,59 @@ TEST(IIS2MDCStartTestGroup, startFxnTest)
   POINTERS_EQUAL(&cfg, iis2mdc.cfg);
 }
 
+TEST_GROUP(IIS2MDCReadTestGroup)
+{
+  iis2mdc_handle_t iis2mdc;
+  iis2mdc_config_t cfg =
+  {
+    &i2c,
+    IIS2MDC_ODR_100_Hz
+  };
+
+  void setup()
+  {
+    mock().disable();
+    iis2mdcObjectInit(&iis2mdc);
+    (void)iis2mdcStart(&iis2mdc, &cfg);
+    mock().enable();
+  }
+
+  void teardown()
+  {
+    mock().checkExpectations();
+    mock().clear();
+  }
+};
+
+TEST(IIS2MDCReadTestGroup, ReadSuccessful)
+{
+  iis2mdc_sensor_readings_t vals;
+
+  mock().expectOneCall("i2cAcquireBus");
+
+  /* expect to read status register */
+  uint8_t a[] = {0x67U /* status reg addr */, (1 << 3) /* zxyda flag set */};
+  expect_i2c_write(&a[0], 1, &a[1], 1, iis2mdc_addr, MSG_OK);
+
+  /* expect to read output registers */
+  uint8_t b = 0x68U;
+  uint8_t raw[] = { /* LSB:MSB */
+    0x21U, 0x00U,   /* x */
+    0x1DU, 0xFFU,   /* y */
+    0xCBU, 0xFEU    /* z */
+  };
+
+  expect_i2c_write(&b, 1, raw, sizeof(raw), iis2mdc_addr, MSG_OK);
+
+  mock().expectOneCall("i2cReleaseBus");
+
+  LONGS_EQUAL(IIS2MDC_STATUS_OK, iis2mdcRead(&iis2mdc, &vals));
+  DOUBLES_EQUAL(49.5f,   vals.mag_x, 0.1f);
+  DOUBLES_EQUAL(-340.5f, vals.mag_y, 0.1f);
+  DOUBLES_EQUAL(-463.5f, vals.mag_z, 0.1f);
+}
+
+
 int main(int argc, char** argv)
 {
   return RUN_ALL_TESTS(argc, argv);

@@ -33,6 +33,13 @@ typedef enum
 
 typedef struct
 {
+  float mag_x;
+  float mag_y;
+  float mag_z;
+} iis2mdc_sensor_readings_t;
+
+typedef struct
+{
   I2CDriver* i2c;
   iis2mdc_odr_t odr;
 } iis2mdc_config_t;
@@ -59,8 +66,22 @@ void iis2mdcObjectInit(iis2mdc_handle_t* handle);
  *
  * \param[in] handle - driver handle
  * \param[in] cfg - configurations
+ *
+ * \return Driver status
+ * \retval IIS2MDC_STATUS_OK if call successful
  */
 iis2mdc_status_t iis2mdcStart(iis2mdc_handle_t* handle, const iis2mdc_config_t* cfg);
+
+/**
+ * \brief Read magnetometer data in mgauss
+ *
+ * \param[in]  handle - driver handle
+ * \param[out] vals   - output struct to store sensor readings
+ *
+ * \return Driver status
+ * \retval IIS2MDC_STATUS_OK if call successful
+ */
+iis2mdc_status_t iis2mdcRead(iis2mdc_handle_t* handle, iis2mdc_sensor_readings_t* vals);
 
 #ifdef __cplusplus
 }
