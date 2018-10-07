@@ -37,7 +37,7 @@ static systime_t timeout = MS2ST(10U);
 /**
  * \brief LSM6DSL slave address when SDA is grounded
  */
-uint8_t lsm6dsl_addr = 0b01101010;
+static uint8_t lsm6dsl_addr = 0b01101010;
 
 /*****************************************
  * Register addresses
@@ -45,6 +45,7 @@ uint8_t lsm6dsl_addr = 0b01101010;
 
 static uint8_t ctrl1_xl_addr      = 0x10U;
 static uint8_t ctrl2_g_addr       = 0x11U;
+// static uint8_t ctrl10_c_addr      = 0x19U;
 static uint8_t status_addr        = 0x1EU;
 static uint8_t data_start_addr    = 0x22U;
 static uint8_t master_config_addr = 0x1AU;
@@ -188,6 +189,8 @@ lsm6dsl_status_t lsm6dslRead(lsm6dsl_handle_t* handle, lsm6dsl_sensor_readings_t
 lsm6dsl_status_t lsm6dslPassthroughEnable(lsm6dsl_handle_t* handle)
 {
   chDbgCheck(handle != NULL);
+
+  chDbgAssert(handle->state != LSM6DSL_STATE_PASSTHROUGH, "lsm6dslPassthroughEnable called in invalid state");
 
   lsm6dsl_status_t ret = LSM6DSL_SERIAL_ERROR;
 
