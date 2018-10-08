@@ -84,7 +84,19 @@ iis2mdc_status_t iis2mdcStart(iis2mdc_handle_t* handle, const iis2mdc_config_t* 
 iis2mdc_status_t iis2mdcRead(iis2mdc_handle_t* handle, iis2mdc_sensor_readings_t* vals);
 
 /**
- * \brief
+ * \brief Calibrate magnetometer with calculated offsets on all axes
+ *
+ * Calibrate magnetometer with observed offsets. After calibration,
+ * output registers will be:
+ *   mag_reg = mag_reg - offset
+ *
+ * \param[in] handle   - driver handle
+ * \param[in] x_offset - x-axis offset in mgauss
+ * \param[in] y_offset - y-axis offset in mgauss
+ * \param[in] z_offset - z-axis offset in mgauss
+ *
+ * \return Driver status
+ * \retval IIS2MDC_STATUS_OK if call successful
  */
 iis2mdc_status_t iis2mdcCalibrate(iis2mdc_handle_t* handle, float x_offset, float y_offset, float z_offset);
 
