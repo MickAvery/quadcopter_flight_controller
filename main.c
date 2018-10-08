@@ -46,9 +46,96 @@ static void csv(BaseSequentialStream* chp, int argc, char* argv[])
   }
 }
 
+static void mag_calibrate(BaseSequentialStream* chp, int argc, char* argv[])
+{
+  (void)argc;
+  (void)argv;
+
+  chprintf(
+    chp,
+    "Magnetometer calibration sequence\n"
+    "Rotate device around\n");
+
+  float acc_x_max = 0.0f;
+  float acc_x_min = 0.0f;
+  float acc_y_max = 0.0f;
+  float acc_y_min = 0.0f;
+  float acc_z_max = 0.0f;
+  float acc_z_min = 0.0f;
+
+  float acc_x_diff = 0.0f;
+  float acc_y_diff = 0.0f;
+  float acc_z_diff = 0.0f;
+
+  float mag_x_max = 0.0f;
+  float mag_x_min = 0.0f;
+  float mag_y_max = 0.0f;
+  float mag_y_min = 0.0f;
+  float mag_z_max = 0.0f;
+  float mag_z_min = 0.0f;
+
+  bool x_done = false;
+  bool y_done = false;
+  bool z_done = false;
+
+  while(
+    (acc_x_diff < 2000.0f) ||
+    (acc_y_diff < 2000.0f) ||
+    (acc_z_diff < 2000.0f)) {
+
+    if(((SerialDriver*)chp)->vmt->gett(chp, 100) == 3) {
+      return;
+    }
+
+    if(readings.acc_x > acc_x_max) acc_x_max = readings.acc_x;
+    if(readings.acc_x < acc_x_min) acc_x_min = readings.acc_x;
+    if(readings.acc_y > acc_y_max) acc_y_max = readings.acc_y;
+    if(readings.acc_y < acc_y_min) acc_y_min = readings.acc_y;
+    if(readings.acc_z > acc_z_max) acc_z_max = readings.acc_z;
+    if(readings.acc_z < acc_z_min) acc_z_min = readings.acc_z;
+
+    acc_x_diff = acc_x_max - acc_x_min;
+    acc_y_diff = acc_y_max - acc_y_min;
+    acc_z_diff = acc_z_max - acc_z_min;
+
+    if(mag_readings.mag_x > mag_x_max) mag_x_max = mag_readings.mag_x;
+    if(mag_readings.mag_x < mag_x_min) mag_x_min = mag_readings.mag_x;
+    if(mag_readings.mag_y > mag_y_max) mag_y_max = mag_readings.mag_y;
+    if(mag_readings.mag_y < mag_y_min) mag_y_min = mag_readings.mag_y;
+    if(mag_readings.mag_z > mag_z_max) mag_z_max = mag_readings.mag_z;
+    if(mag_readings.mag_z < mag_z_min) mag_z_min = mag_readings.mag_z;
+
+    if((x_done == false) && (acc_x_diff >= 2000.0f)) {
+      chprintf(chp, "x-axis done\n");
+      x_done = true;
+    }
+
+    if((y_done == false) && (acc_y_diff >= 2000.0f)) {
+      chprintf(chp, "y-axis done\n");
+      y_done = true;
+    }
+
+    if((z_done == false) && (acc_z_diff >= 2000.0f)) {
+      chprintf(chp, "z-axis done\n");
+      z_done = true;
+    }
+
+  }
+
+  chprintf(
+    chp,
+    "mag_x_max = %3.2f\tmag_x_min = %3.2f\n"
+    "mag_y_max = %3.2f\tmag_y_min = %3.2f\n"
+    "mag_z_max = %3.2f\tmag_z_min = %3.2f\n",
+    mag_x_max, mag_x_min,
+    mag_y_max, mag_y_min,
+    mag_z_max, mag_z_min);
+}
+
 static const ShellCommand shellcmds[] =
 {
   {"csv", csv},
+  {"mag_calibrate", mag_calibrate},
   {NULL, NULL}
 };
 
