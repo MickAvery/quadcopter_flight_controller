@@ -19,6 +19,9 @@ static lsm6dsl_sensor_readings_t readings;
 static iis2mdc_sensor_readings_t mag_readings;
 static float euler_angles[3] = {0.0f};
 
+static lsm6dsl_handle_t lsm6dsl;
+static iis2mdc_handle_t iis2mdc;
+
 #define SHELL_WORKING_AREA_SIZE THD_WORKING_AREA_SIZE(2048)
 
 static void csv(BaseSequentialStream* chp, int argc, char* argv[])
@@ -39,7 +42,7 @@ static void csv(BaseSequentialStream* chp, int argc, char* argv[])
       "%4.1f\t%4.1f\t%4.1f\n",
       readings.gyro_x / 1000.0f, readings.gyro_y / 1000.0f, readings.gyro_z / 1000.0f,
       readings.acc_x / 1000.0f, readings.acc_y / 1000.0f, readings.acc_z / 1000.0f,
-      mag_readings.mag_x / 1000.0f, mag_readings.mag_z / 1000.0f, mag_readings.mag_z / 1000.0f,
+      mag_readings.mag_x / 1000.0f, mag_readings.mag_y / 1000.0f, mag_readings.mag_z / 1000.0f,
       euler_angles[0], euler_angles[1], euler_angles[2]);
 
     chThdSleepMilliseconds(3);
@@ -126,10 +129,22 @@ static void mag_calibrate(BaseSequentialStream* chp, int argc, char* argv[])
     chp,
     "mag_x_max = %3.2f\tmag_x_min = %3.2f\n"
     "mag_y_max = %3.2f\tmag_y_min = %3.2f\n"
-    "mag_z_max = %3.2f\tmag_z_min = %3.2f\n",
+    "mag_z_max = %3.2f\tmag_z_min = %3.2f\n"
+    "mag_x_offset = %3.2f\n"
+    "mag_y_offset = %3.2f\n"
+    "mag_z_offset = %3.2f\n",
     mag_x_max, mag_x_min,
     mag_y_max, mag_y_min,
-    mag_z_max, mag_z_min);
+    mag_z_max, mag_z_min,
+    (mag_x_max + mag_x_min) / 2.0f,
+    (mag_y_max + mag_y_min) / 2.0f,
+    (mag_z_max + mag_z_min) / 2.0f);
+
+  (void)iis2mdcCalibrate(
+    &iis2mdc,
+    (mag_x_max + mag_x_min) / 2.0f,
+    (mag_y_max + mag_y_min) / 2.0f,
+    (mag_z_max + mag_z_min) / 2.0f);
 }
 
 static const ShellCommand shellcmds[] =
@@ -175,8 +190,6 @@ static THD_WORKING_AREA(imuReadThreadWorkingArea, 1024);
 static THD_FUNCTION(imuReadThread, arg)
 {
   (void)arg;
-  lsm6dsl_handle_t lsm6dsl;
-  iis2mdc_handle_t iis2mdc;
 
   lsm6dslObjectInit(&lsm6dsl);
   iis2mdcObjectInit(&iis2mdc);
