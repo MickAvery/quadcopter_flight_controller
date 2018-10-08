@@ -150,7 +150,7 @@ iis2mdc_status_t iis2mdcCalibrate(iis2mdc_handle_t* handle, float x_offset, floa
   uint8_t tx[7] = {0U};
   tx[0] = offset_x_reg_l_addr;
 
-  (void)memcpy(&tx[1], raw_offsets, sizeof(raw_offsets) / sizeof(int16_t));
+  (void)memcpy(&tx[1], raw_offsets, sizeof(raw_offsets));
 
   i2cAcquireBus(i2c);
 
