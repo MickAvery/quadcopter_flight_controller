@@ -6,6 +6,7 @@
  **/
 
 #include <stdint.h>
+#include <string.h>
 #include "CppUTest/CommandLineTestRunner.h"
 #include "CppUTest/TestHarness.h"
 #include "CppUTestExt/MockSupport.h"
@@ -132,6 +133,52 @@ TEST(IIS2MDCReadTestGroup, ReadSuccessful)
   DOUBLES_EQUAL(-463.5f, vals.mag_z, 0.1f);
 }
 
+TEST_GROUP(IIS2MDCCalibrateTestGroup)
+{
+  iis2mdc_handle_t iis2mdc;
+  iis2mdc_config_t cfg =
+  {
+    &i2c,
+    IIS2MDC_ODR_100_Hz
+  };
+
+  void setup()
+  {
+    mock().disable();
+    iis2mdcObjectInit(&iis2mdc);
+    (void)iis2mdcStart(&iis2mdc, &cfg);
+    mock().enable();
+  }
+
+  void teardown()
+  {
+    mock().checkExpectations();
+    mock().clear();
+  }
+};
+
+TEST(IIS2MDCCalibrateTestGroup, SuccessfulCalibrate)
+{
+  float x_offset = -120.75f;
+  float y_offset = 177.75f;
+  float z_offset = 309.00f;
+
+  int16_t offsets_raw_bytes[] = {
+    (int16_t)(x_offset / 1.5f),
+    (int16_t)(y_offset / 1.5f),
+    (int16_t)(z_offset / 1.5f)
+  };
+
+  uint8_t tx[7] = {0U};
+  tx[0] = 0x45U; /* OFFSET_X_REG_L addr */
+  (void)memcpy(&tx[1], offsets_raw_bytes, sizeof(offsets_raw_bytes) / sizeof(int16_t));
+
+  mock().expectOneCall("i2cAcquireBus");
+  expect_i2c_write(tx, sizeof(tx), NULL, 0, iis2mdc_addr, MSG_OK);
+  mock().expectOneCall("i2cReleaseBus");
+
+  LONGS_EQUAL(IIS2MDC_STATUS_OK, iis2mdcCalibrate(&iis2mdc, x_offset, y_offset, z_offset));
+}
 
 int main(int argc, char** argv)
 {

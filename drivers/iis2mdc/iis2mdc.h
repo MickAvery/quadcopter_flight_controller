@@ -83,6 +83,11 @@ iis2mdc_status_t iis2mdcStart(iis2mdc_handle_t* handle, const iis2mdc_config_t* 
  */
 iis2mdc_status_t iis2mdcRead(iis2mdc_handle_t* handle, iis2mdc_sensor_readings_t* vals);
 
+/**
+ * \brief
+ */
+iis2mdc_status_t iis2mdcCalibrate(iis2mdc_handle_t* handle, float x_offset, float y_offset, float z_offset);
+
 #ifdef __cplusplus
 }
 #endif
