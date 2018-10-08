@@ -163,7 +163,7 @@ TEST(IIS2MDCCalibrateTestGroup, SuccessfulCalibrate)
   float y_offset = 177.75f;
   float z_offset = 309.00f;
 
-  int16_t offsets_raw_bytes[] = {
+  int16_t offsets_raw_bytes[3] = {
     (int16_t)(x_offset / 1.5f),
     (int16_t)(y_offset / 1.5f),
     (int16_t)(z_offset / 1.5f)
@@ -171,7 +171,7 @@ TEST(IIS2MDCCalibrateTestGroup, SuccessfulCalibrate)
 
   uint8_t tx[7] = {0U};
   tx[0] = 0x45U; /* OFFSET_X_REG_L addr */
-  (void)memcpy(&tx[1], offsets_raw_bytes, sizeof(offsets_raw_bytes) * sizeof(int16_t));
+  (void)memcpy(&tx[1], offsets_raw_bytes, sizeof(offsets_raw_bytes) / sizeof(int16_t));
 
   mock().expectOneCall("i2cAcquireBus");
   expect_i2c_write(tx, sizeof(tx), NULL, 0, iis2mdc_addr, MSG_OK);
