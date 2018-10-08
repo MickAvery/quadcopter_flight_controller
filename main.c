@@ -4,6 +4,8 @@
  * \brief  Main app point of entry
  **/
 
+#include <math.h>
+
 #include "ch.h"
 #include "hal.h"
 #include "shell.h"
@@ -15,6 +17,7 @@
 
 static lsm6dsl_sensor_readings_t readings;
 static iis2mdc_sensor_readings_t mag_readings;
+static float euler_angles[3] = {0.0f};
 
 #define SHELL_WORKING_AREA_SIZE THD_WORKING_AREA_SIZE(2048)
 
@@ -30,10 +33,15 @@ static void csv(BaseSequentialStream* chp, int argc, char* argv[])
 
     chprintf(
       chp,
-      "%0.1f\t%0.1f\t%0.1f\t%0.1f\t%0.1f\t%0.1f\t%0.1f\t%0.1f\t%0.1f\n",
-      readings.gyro_x, readings.gyro_y, readings.gyro_z,
-      readings.acc_x, readings.acc_y, readings.acc_z,
-      mag_readings.mag_x, mag_readings.mag_z, mag_readings.mag_z);
+      "%4.1f\t%4.1f\t%4.1f\t"
+      "%2.1f\t%2.1f\t%2.1f\t"
+      "%3.1f\t%3.1f\t%3.1f\t"
+      "%4.1f\t%4.1f\t%4.1f\n",
+      readings.gyro_x / 1000.0f, readings.gyro_y / 1000.0f, readings.gyro_z / 1000.0f,
+      readings.acc_x / 1000.0f, readings.acc_y / 1000.0f, readings.acc_z / 1000.0f,
+      mag_readings.mag_x / 1000.0f, mag_readings.mag_z / 1000.0f, mag_readings.mag_z / 1000.0f,
+      euler_angles[0], euler_angles[1], euler_angles[2]);
+
     chThdSleepMilliseconds(3);
   }
 }
@@ -96,6 +104,24 @@ static THD_FUNCTION(imuReadThread, arg)
 
       (void)lsm6dslRead(&lsm6dsl, &readings);
       (void)iis2mdcRead(&iis2mdc, &mag_readings);
+
+      /* euler angle measurements */
+      /* TODO: make library for this */
+      static bool first_reading = true;
+
+      if(first_reading) {
+        euler_angles[0] = atan2f(readings.acc_x, readings.acc_z) * 180.0f / M_PI; /* roll */
+        euler_angles[1] = atan2f(readings.acc_y, readings.acc_z) * 180.0f / M_PI; /* pitch */
+      } else {
+        euler_angles[0] += readings.gyro_y * 10.0f; /* roll */
+        euler_angles[1] += readings.gyro_x * 10.0f; /* pitch */
+
+        float roll_acc = atan2f(readings.acc_x, readings.acc_z) * 180.0f / M_PI;
+        float pitch_acc = atan2f(readings.acc_y, readings.acc_z) * 180.0f / M_PI;
+
+        euler_angles[0] = (euler_angles[0] * 0.98f) + (roll_acc * 0.02f);
+        euler_angles[1] = (euler_angles[1] * 0.98f) + (pitch_acc * 0.02f);
+      }
 
       chThdSleepMilliseconds(10);
 

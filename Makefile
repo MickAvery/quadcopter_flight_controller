@@ -220,7 +220,7 @@ UINCDIR =
 ULIBDIR =
 
 # List all user libraries here
-ULIBS =
+ULIBS = -lm
 
 TESTLIBDIR = $(CPPUTEST)/cpputest_build/lib \
   $(CPPUTEST)/cpputest_build/src/CppUTest \
