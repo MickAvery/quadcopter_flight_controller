@@ -10,9 +10,9 @@
 
 #include <math.h>
 
+#include "imu_engine.h"
 #include "lsm6dsl.h"
 #include "iis2mdc.h"
-#include "imu_engine.h"
 
 /* let's define PI */
 #ifndef M_PI

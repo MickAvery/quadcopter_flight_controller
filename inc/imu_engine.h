@@ -11,6 +11,8 @@
 #ifndef IMU_ENGINE_H
 #define IMU_ENGINE_H
 
+#include "hal.h"
+
 typedef enum
 {
   IMU_DATA_X = 0,
