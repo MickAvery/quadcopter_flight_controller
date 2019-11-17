@@ -29,4 +29,10 @@
 
 #define I2C_PIN_ALTMODE 4
 
+/* ICU pins */
+
+#define ICU_PORT    GPIOB
+#define ICU_PADNUM  4
+#define ICU_ALTMODE 2
+
 #endif /* _PINCONF_H */
