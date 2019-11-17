@@ -207,6 +207,7 @@ static THD_FUNCTION(imuReadThread, arg)
 
       /* euler angle measurements */
       /* TODO: make library for this */
+      /* https://engineering.stackexchange.com/questions/3348/calculating-pitch-yaw-and-roll-from-mag-acc-and-gyro-data */
       static bool first_reading = true;
 
       if(first_reading) {
@@ -221,6 +222,7 @@ static THD_FUNCTION(imuReadThread, arg)
 
         euler_angles[0] = (euler_angles[0] * 0.98f) + (roll_acc * 0.02f);
         euler_angles[1] = (euler_angles[1] * 0.98f) + (pitch_acc * 0.02f);
+        euler_angles[2] = atanf(readings.acc_z / sqrtf(readings.acc_x*readings.acc_x + readings.acc_z*readings.acc_z)) * 180.0f / M_PI;
       }
 
       chThdSleepMilliseconds(10);
