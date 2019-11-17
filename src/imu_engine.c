@@ -14,6 +14,11 @@
 #include "iis2mdc.h"
 #include "imu_engine.h"
 
+/* let's define PI */
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 /**
  * Sensor handles and configs
  */
@@ -210,8 +215,7 @@ void imuEngineGetData(imu_engine_handle_t* handle, float data[IMU_DATA_AXES], im
   }
 
   if(src != NULL) {
-    size_t i;
-    for(i = 0U ; i < IMU_DATA_AXES ; i++) {
+    for(size_t i = 0U ; i < IMU_DATA_AXES ; i++) {
       dest[i] = src[i];
     }
   }
