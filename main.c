@@ -11,16 +11,10 @@
 #include "shell.h"
 #include "chprintf.h"
 
-#include "lsm6dsl.h"
-#include "iis2mdc.h"
+#include "imu_engine.h"
 #include "pinconf.h"
 
-static lsm6dsl_sensor_readings_t readings;
-static iis2mdc_sensor_readings_t mag_readings;
-static float euler_angles[3] = {0.0f};
-
-static lsm6dsl_handle_t lsm6dsl;
-static iis2mdc_handle_t iis2mdc;
+static imu_engine_handle_t imu_engine;
 
 #define SHELL_WORKING_AREA_SIZE THD_WORKING_AREA_SIZE(2048)
 
@@ -34,16 +28,30 @@ static void csv(BaseSequentialStream* chp, int argc, char* argv[])
       break;
     }
 
+    float accel[IMU_DATA_AXES] = {0.0f};
+    float gyro[IMU_DATA_AXES] = {0.0f};
+    float mag[IMU_DATA_AXES] = {0.0f};
+    float euler[IMU_DATA_AXES] = {0.0f};
+
+    size_t x = IMU_DATA_X;
+    size_t y = IMU_DATA_Y;
+    size_t z = IMU_DATA_Z;
+
+    imuEngineGetData(&imu_engine, accel, IMU_ENGINE_ACCEL);
+    imuEngineGetData(&imu_engine, gyro, IMU_ENGINE_GYRO);
+    imuEngineGetData(&imu_engine, mag, IMU_ENGINE_MAG);
+    imuEngineGetData(&imu_engine, euler, IMU_ENGINE_EULER);
+
     chprintf(
       chp,
       "%4.1f\t%4.1f\t%4.1f\t"
       "%2.1f\t%2.1f\t%2.1f\t"
       "%3.1f\t%3.1f\t%3.1f\t"
       "%4.1f\t%4.1f\t%4.1f\n",
-      readings.gyro_x / 1000.0f, readings.gyro_y / 1000.0f, readings.gyro_z / 1000.0f,
-      readings.acc_x / 1000.0f, readings.acc_y / 1000.0f, readings.acc_z / 1000.0f,
-      mag_readings.mag_x / 1000.0f, mag_readings.mag_y / 1000.0f, mag_readings.mag_z / 1000.0f,
-      euler_angles[0], euler_angles[1], euler_angles[2]);
+      gyro[x] / 1000.0f, gyro[y] / 1000.0f, gyro[z] / 1000.0f,
+      accel[x] / 1000.0f, accel[y] / 1000.0f, accel[z] / 1000.0f,
+      mag[x] / 1000.0f, mag[y] / 1000.0f, mag[z] / 1000.0f,
+      euler[x], euler[y], euler[z]);
 
     chThdSleepMilliseconds(3);
   }
@@ -59,23 +67,16 @@ static void mag_calibrate(BaseSequentialStream* chp, int argc, char* argv[])
     "Magnetometer calibration sequence\n"
     "Rotate device around\n");
 
-  float acc_x_max = 0.0f;
-  float acc_x_min = 0.0f;
-  float acc_y_max = 0.0f;
-  float acc_y_min = 0.0f;
-  float acc_z_max = 0.0f;
-  float acc_z_min = 0.0f;
+  float acc_max[IMU_DATA_AXES] = {0.0f};
+  float acc_min[IMU_DATA_AXES] = {0.0f};
+
+  float mag_max[IMU_DATA_AXES] = {0.0f}; /* road warrior! */
+  float mag_min[IMU_DATA_AXES] = {0.0f};
+  float mag_offset[IMU_DATA_AXES] = {0.0f};
 
   float acc_x_diff = 0.0f;
   float acc_y_diff = 0.0f;
   float acc_z_diff = 0.0f;
-
-  float mag_x_max = 0.0f;
-  float mag_x_min = 0.0f;
-  float mag_y_max = 0.0f;
-  float mag_y_min = 0.0f;
-  float mag_z_max = 0.0f;
-  float mag_z_min = 0.0f;
 
   bool x_done = false;
   bool y_done = false;
@@ -90,24 +91,30 @@ static void mag_calibrate(BaseSequentialStream* chp, int argc, char* argv[])
       return;
     }
 
-    if(readings.acc_x > acc_x_max) acc_x_max = readings.acc_x;
-    if(readings.acc_x < acc_x_min) acc_x_min = readings.acc_x;
-    if(readings.acc_y > acc_y_max) acc_y_max = readings.acc_y;
-    if(readings.acc_y < acc_y_min) acc_y_min = readings.acc_y;
-    if(readings.acc_z > acc_z_max) acc_z_max = readings.acc_z;
-    if(readings.acc_z < acc_z_min) acc_z_min = readings.acc_z;
+    float acc[IMU_DATA_AXES] = {0.0f};
+    float mag[IMU_DATA_AXES] = {0.0f};
 
-    acc_x_diff = acc_x_max - acc_x_min;
-    acc_y_diff = acc_y_max - acc_y_min;
-    acc_z_diff = acc_z_max - acc_z_min;
+    imuEngineGetData(&imu_engine, acc, IMU_ENGINE_ACCEL);
+    imuEngineGetData(&imu_engine, mag, IMU_ENGINE_MAG);
 
-    if(mag_readings.mag_x > mag_x_max) mag_x_max = mag_readings.mag_x;
-    if(mag_readings.mag_x < mag_x_min) mag_x_min = mag_readings.mag_x;
-    if(mag_readings.mag_y > mag_y_max) mag_y_max = mag_readings.mag_y;
-    if(mag_readings.mag_y < mag_y_min) mag_y_min = mag_readings.mag_y;
-    if(mag_readings.mag_z > mag_z_max) mag_z_max = mag_readings.mag_z;
-    if(mag_readings.mag_z < mag_z_min) mag_z_min = mag_readings.mag_z;
+    /* determine max and min from data so far */
+    for(size_t i = 0U ; i < IMU_DATA_AXES ; i++) {
+      acc_max[i] = fmax(acc_max[i], acc[i]);
+      acc_min[i] = fmin(acc_min[i], acc[i]);
 
+      mag_max[i] = fmax(mag_max[i], mag[i]);
+      mag_min[i] = fmin(mag_min[i], mag[i]);
+    }
+
+    /* get delta between acc max and min */
+    acc_x_diff = acc_max[IMU_DATA_X] - acc_min[IMU_DATA_X];
+    acc_y_diff = acc_max[IMU_DATA_Y] - acc_min[IMU_DATA_Y];
+    acc_z_diff = acc_max[IMU_DATA_Z] - acc_min[IMU_DATA_Z];
+
+    /**
+     * completion is determined if accel data has reached the extremes
+     * on each axis (assuming that the extreme is 1G on each end, 1G - (-1G) = 2G)
+     */
     if((x_done == false) && (acc_x_diff >= 2000.0f)) {
       chprintf(chp, "x-axis done\n");
       x_done = true;
@@ -125,6 +132,11 @@ static void mag_calibrate(BaseSequentialStream* chp, int argc, char* argv[])
 
   }
 
+  /* calculate mag offset from determined max and min values */
+  for(size_t i = 0U ; i < IMU_DATA_AXES ; i++) {
+    mag_offset[i] = (mag_max[i] + mag_min[i]) / 2.0f;
+  }
+
   chprintf(
     chp,
     "mag_x_max = %3.2f\tmag_x_min = %3.2f\n"
@@ -133,18 +145,18 @@ static void mag_calibrate(BaseSequentialStream* chp, int argc, char* argv[])
     "mag_x_offset = %3.2f\n"
     "mag_y_offset = %3.2f\n"
     "mag_z_offset = %3.2f\n",
-    mag_x_max, mag_x_min,
-    mag_y_max, mag_y_min,
-    mag_z_max, mag_z_min,
-    (mag_x_max + mag_x_min) / 2.0f,
-    (mag_y_max + mag_y_min) / 2.0f,
-    (mag_z_max + mag_z_min) / 2.0f);
+    mag_max[IMU_DATA_X], mag_min[IMU_DATA_X],
+    mag_max[IMU_DATA_Y], mag_min[IMU_DATA_Y],
+    mag_max[IMU_DATA_Z], mag_min[IMU_DATA_Z],
+    mag_offset[IMU_DATA_X],
+    mag_offset[IMU_DATA_Y],
+    mag_offset[IMU_DATA_Z]);
 
-  (void)iis2mdcCalibrate(
-    &iis2mdc,
-    (mag_x_max + mag_x_min) / 2.0f,
-    (mag_y_max + mag_y_min) / 2.0f,
-    (mag_z_max + mag_z_min) / 2.0f);
+  if(imuEngineMagCalibrate(&imu_engine, mag_offset) != IMU_ENGINE_OK) {
+    chprintf(chp, "failed to calibrate magnetometer\n");
+  } else {
+    chprintf(chp, "successfully calibrated magnetometer\n");
+  }
 }
 
 static const ShellCommand shellcmds[] =
@@ -166,73 +178,6 @@ static const I2CConfig i2ccfg =
   400000,
   FAST_DUTY_CYCLE_2
 };
-
-static const lsm6dsl_config_t lsm6dsl_cfg =
-{
-  &I2CD2,
-  LSM6DSL_104_Hz,
-  LSM6DSL_ACCEL_2G,
-  LSM6DSL_GYRO_250DPS
-};
-
-static const iis2mdc_config_t iis2mdc_cfg =
-{
-  &I2CD2,
-  IIS2MDC_ODR_100_Hz
-};
-
-/*************************************************
- * Threads
- *************************************************/
-
-static THD_WORKING_AREA(imuReadThreadWorkingArea, 1024);
-
-static THD_FUNCTION(imuReadThread, arg)
-{
-  (void)arg;
-
-  lsm6dslObjectInit(&lsm6dsl);
-  iis2mdcObjectInit(&iis2mdc);
-
-  if(lsm6dslStart(&lsm6dsl, &lsm6dsl_cfg) != LSM6DSL_OK) {
-    /* failed to start driver */
-  } else if(iis2mdcStart(&iis2mdc, &iis2mdc_cfg) != IIS2MDC_STATUS_OK) {
-    /* failed to start driver */
-  } else {
-
-    while(true) {
-
-      (void)lsm6dslRead(&lsm6dsl, &readings);
-      (void)iis2mdcRead(&iis2mdc, &mag_readings);
-
-      /* euler angle measurements */
-      /* TODO: make library for this */
-      /* https://engineering.stackexchange.com/questions/3348/calculating-pitch-yaw-and-roll-from-mag-acc-and-gyro-data */
-      static bool first_reading = true;
-
-      if(first_reading) {
-        euler_angles[0] = atan2f(readings.acc_x, readings.acc_z) * 180.0f / M_PI; /* roll */
-        euler_angles[1] = atan2f(readings.acc_y, readings.acc_z) * 180.0f / M_PI; /* pitch */
-      } else {
-        euler_angles[0] += readings.gyro_y * 10.0f; /* roll */
-        euler_angles[1] += readings.gyro_x * 10.0f; /* pitch */
-
-        float roll_acc = atan2f(readings.acc_x, readings.acc_z) * 180.0f / M_PI;
-        float pitch_acc = atan2f(readings.acc_y, readings.acc_z) * 180.0f / M_PI;
-
-        euler_angles[0] = (euler_angles[0] * 0.98f) + (roll_acc * 0.02f);
-        euler_angles[1] = (euler_angles[1] * 0.98f) + (pitch_acc * 0.02f);
-        euler_angles[2] = atanf(readings.acc_z / sqrtf(readings.acc_x*readings.acc_x + readings.acc_z*readings.acc_z)) * 180.0f / M_PI;
-      }
-
-      chThdSleepMilliseconds(10);
-
-    }
-
-  }
-
-  chSysHalt("Failed to start IMUs");
-}
 
 /*************************************************
  * main
@@ -256,14 +201,11 @@ int main(void) {
   palSetPadMode(I2C_SDA_PORT, I2C_SDA_PADNUM, PAL_MODE_ALTERNATE(I2C_PIN_ALTMODE));
   i2cStart(&I2CD2, &i2ccfg);
 
-  /* create threads */
-  chThdCreateStatic(
-    imuReadThreadWorkingArea,
-    sizeof(imuReadThreadWorkingArea),
-    NORMALPRIO,
-    imuReadThread,
-    NULL);
+  /* start IMU Engine */
+  imuEngineInit(&imu_engine);
+  imuEngineStart(&imu_engine);
 
+  /* loop for shell thread */
   while (1) {
     thread_t* shelltp = chThdCreateFromHeap(
       NULL,
