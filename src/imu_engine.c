@@ -41,7 +41,7 @@ static const iis2mdc_config_t iis2mdc_cfg =
  */
 static bool imuIsRunning(imu_engine_handle_t* handle)
 {
-  bool ret = false;
+  bool ret;
 
   /* acquire mutex */
   osalMutexLock(&handle->lock);
