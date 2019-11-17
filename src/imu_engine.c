@@ -210,7 +210,8 @@ void imuEngineGetData(imu_engine_handle_t* handle, float data[IMU_DATA_AXES], im
   }
 
   if(src != NULL) {
-    for(size_t i = 0U ; i < IMU_DATA_AXES ; i++) {
+    size_t i;
+    for(i = 0U ; i < IMU_DATA_AXES ; i++) {
       dest[i] = src[i];
     }
   }
