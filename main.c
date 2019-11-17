@@ -12,6 +12,7 @@
 #include "chprintf.h"
 
 #include "imu_engine.h"
+#include "radio_tx_rx.h"
 #include "pinconf.h"
 
 static imu_engine_handle_t imu_engine;
@@ -54,6 +55,21 @@ static void csv(BaseSequentialStream* chp, int argc, char* argv[])
       euler[x], euler[y], euler[z]);
 
     chThdSleepMilliseconds(3);
+  }
+}
+
+static void ppm_printout(BaseSequentialStream* chp, int argc, char* argv[])
+{
+  (void)argc;
+  (void)argv;
+
+  while(true) {
+
+    /* return if escape key ^C is pressed */
+    if(((SerialDriver*)chp)->vmt->gett(chp, 100) == 3) {
+      return;
+    }
+
   }
 }
 
@@ -162,6 +178,7 @@ static void mag_calibrate(BaseSequentialStream* chp, int argc, char* argv[])
 static const ShellCommand shellcmds[] =
 {
   {"csv", csv},
+  {"ppm", ppm_printout},
   {"mag_calibrate", mag_calibrate},
   {NULL, NULL}
 };
@@ -204,6 +221,9 @@ int main(void) {
   /* start IMU Engine */
   imuEngineInit(&imu_engine);
   imuEngineStart(&imu_engine);
+
+  /* start Radio Transceiver Input Capture */
+  radioTxRxStart(&RADIO_TXRX);
 
   /* loop for shell thread */
   while (1) {
