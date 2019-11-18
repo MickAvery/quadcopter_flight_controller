@@ -52,4 +52,11 @@ void radioTxRxInit(radio_tx_rx_handle_t* handle);
  */
 void radioTxRxStart(radio_tx_rx_handle_t* handle);
 
+/**
+ * \brief Read the signal from each channel coming from the PPM input
+ * \param[in]  handle - radio transceiver handle
+ * \param[out] channels - signal values on each channel
+ */
+void radioTxRxReadInputs(radio_tx_rx_handle_t* handle, icucnt_t channels[RADIO_TXRX_CHANNELS]);
+
 #endif /* RADIO_TX_RX_H */

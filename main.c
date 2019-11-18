@@ -70,6 +70,19 @@ static void ppm_printout(BaseSequentialStream* chp, int argc, char* argv[])
       return;
     }
 
+    icucnt_t channels[RADIO_TXRX_CHANNELS] = {0U};
+
+    radioTxRxReadInputs(&RADIO_TXRX, channels);
+
+    for(size_t i = 0U ; i < RADIO_TXRX_CHANNELS ; i++) {
+      chprintf(chp, "%u", channels[i]);
+
+      if(i + 1 < RADIO_TXRX_CHANNELS) {
+        chprintf(chp, "\t");
+      } else {
+        chprintf(chp, "\n");
+      }
+    }
   }
 }
 
@@ -219,10 +232,11 @@ int main(void) {
   i2cStart(&I2CD2, &i2ccfg);
 
   /* start IMU Engine */
-  imuEngineInit(&imu_engine);
-  imuEngineStart(&imu_engine);
+  // imuEngineInit(&imu_engine);
+  // imuEngineStart(&imu_engine);
 
   /* start Radio Transceiver Input Capture */
+  radioTxRxInit(&RADIO_TXRX);
   radioTxRxStart(&RADIO_TXRX);
 
   /* loop for shell thread */
