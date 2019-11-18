@@ -5,11 +5,17 @@
  * This module is responsible for decoding the PPM input coming from the radio transceiver
  */
 
+#include <string.h>
+
 #include "radio_tx_rx.h"
 #include "pinconf.h"
 
 /* global handle for Radio Transceiver */
 radio_tx_rx_handle_t RADIO_TXRX;
+
+/* if a pulse has a period greater than this,
+   then we can consider it as the last pulse in the frame */
+static icucnt_t CHANNEL_PERIOD_THRESHOLD = 10U;
 
 /**
  * \notapi
@@ -17,7 +23,18 @@ radio_tx_rx_handle_t RADIO_TXRX;
  */
 static void icuWidthCb(ICUDriver *icup) {
 
-  (void)icuGetWidthX(icup);
+  icucnt_t pulse_width = icuGetWidthX(icup);
+
+  if(RADIO_TXRX.state == RADIO_TXRX_ACTIVE) {
+    radio_tx_rx_channel_t chan = RADIO_TXRX.incoming_channel;
+
+    osalMutexLock(&RADIO_TXRX.lock);
+
+    RADIO_TXRX.channels[chan] = pulse_width;
+
+    osalMutexUnlock(&RADIO_TXRX.lock);
+
+  }
 
 }
 
@@ -28,8 +45,37 @@ static void icuWidthCb(ICUDriver *icup) {
  */
 static void icuPeriodCb(ICUDriver *icup) {
 
-  (void)icuGetPeriodX(icup);
+  icucnt_t period_width = icuGetPeriodX(icup);
 
+  if(RADIO_TXRX.state == RADIO_TXRX_WAITING) {
+    /* waiting for first channel pulse */
+
+    /* if period width is above threshold, then incoming pulse is from a new frame */
+    if(period_width >= CHANNEL_PERIOD_THRESHOLD) {
+      RADIO_TXRX.state = RADIO_TXRX_ACTIVE;
+      RADIO_TXRX.incoming_channel = RADIO_TXRX_CHAN0;
+    }
+
+  } else {
+
+    /* if period width is above threshold, then incoming pulse is from a new frame */
+    if(period_width >= CHANNEL_PERIOD_THRESHOLD) { /* TODO: properly set threshold */
+      RADIO_TXRX.incoming_channel = RADIO_TXRX_CHAN0;
+    } else {
+      if(RADIO_TXRX.incoming_channel + 1 >= RADIO_TXRX_CHANNELS) {
+
+        /* We're somehow getting more channels than necessary on the signal???
+           Set state back to waiting so we wait on a new frame */
+        RADIO_TXRX.state = RADIO_TXRX_WAITING;
+
+      } else {
+
+        /* move on to the next channel */
+        RADIO_TXRX.incoming_channel += 1;
+
+      }
+    }
+  }
 }
 
 /**
@@ -47,19 +93,6 @@ static ICUConfig icucfg =
 };
 
 /**
- * Radio Transceiver input capture thread
- */
-// THD_WORKING_AREA(radioTxRxThreadWorkingArea, 256);
-// THD_FUNCTION(radioTxRxThread, arg)
-// {
-//   (void)arg;
-
-//   while(true) {
-
-//   }
-// }
-
-/**
  * \brief Initialize the radio transceiver module
  * \param[in] handle - radio transceiver handle
  */
@@ -68,11 +101,16 @@ void radioTxRxInit(radio_tx_rx_handle_t* handle)
   osalDbgCheck(handle != NULL);
   osalDbgCheck(handle->state == RADIO_TXRX_UNINIT);
 
+  osalMutexObjectInit(&handle->lock);
+
+  (void)memset((void*)handle->channels, 0U, RADIO_TXRX_CHANNELS*sizeof(icucnt_t));
+  handle->incoming_channel = RADIO_TXRX_CHAN0;
   handle->state = RADIO_TXRX_STOP;
 }
 
 /**
  * \brief Start the Radio Transceiver module
+ * \param[in] handle - radio transceiver handle
  */
 void radioTxRxStart(radio_tx_rx_handle_t* handle)
 {
@@ -86,12 +124,25 @@ void radioTxRxStart(radio_tx_rx_handle_t* handle)
   icuEnableNotifications(&ICUD3); /* enable callbacks */
 
   handle->state = RADIO_TXRX_WAITING;
+}
 
-  /* start the IMU Engine Thread */
-  // chThdCreateStatic(
-  //   radioTxRxThreadWorkingArea,
-  //   sizeof(radioTxRxThreadWorkingArea),
-  //   NORMALPRIO,
-  //   radioTxRxThread,
-  //   NULL);
+/**
+ * \brief Read the signal from each channel coming from the PPM input
+ * \param[in]  handle - radio transceiver handle
+ * \param[out] channels - signal values on each channel
+ */
+void radioTxRxReadInputs(radio_tx_rx_handle_t* handle, icucnt_t channels[RADIO_TXRX_CHANNELS])
+{
+  osalDbgCheck(handle != NULL);
+  osalDbgCheck(
+    (handle->state == RADIO_TXRX_WAITING) ||
+    (handle->state == RADIO_TXRX_ACTIVE));
+
+  osalMutexLock(&handle->lock);
+
+  for(size_t i = 0U ; i < RADIO_TXRX_CHANNELS ; i++) {
+    channels[i] = handle->channels[i];
+  }
+
+  osalMutexUnlock(&handle->lock);
 }

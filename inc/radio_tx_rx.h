@@ -8,6 +8,8 @@
 #ifndef RADIO_TX_RX_H
 #define RADIO_TX_RX_H
 
+#include "hal.h"
+
 typedef enum
 {
   RADIO_TXRX_UNINIT = 0,
@@ -16,9 +18,23 @@ typedef enum
   RADIO_TXRX_ACTIVE
 } radio_tx_rx_state_t;
 
+typedef enum
+{
+  RADIO_TXRX_CHAN0 = 0,
+  RADIO_TXRX_CHAN1,
+  RADIO_TXRX_CHAN2,
+  RADIO_TXRX_CHAN3,
+  RADIO_TXRX_CHAN4,
+  RADIO_TXRX_CHAN5,
+  RADIO_TXRX_CHANNELS
+} radio_tx_rx_channel_t;
+
 typedef struct
 {
   radio_tx_rx_state_t state;
+  radio_tx_rx_channel_t incoming_channel;
+  volatile icucnt_t channels[RADIO_TXRX_CHANNELS];
+  mutex_t lock;
 } radio_tx_rx_handle_t;
 
 /* global handle for Radio Transceiver */
