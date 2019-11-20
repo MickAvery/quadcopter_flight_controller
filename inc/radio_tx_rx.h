@@ -26,15 +26,16 @@ typedef enum
   RADIO_TXRX_CHAN3,
   RADIO_TXRX_CHAN4,
   RADIO_TXRX_CHAN5,
+  RADIO_TXRX_CHAN6,
+  RADIO_TXRX_CHAN7,
   RADIO_TXRX_CHANNELS
 } radio_tx_rx_channel_t;
 
 typedef struct
 {
   radio_tx_rx_state_t state;
-  radio_tx_rx_channel_t incoming_channel;
-  volatile icucnt_t channels[RADIO_TXRX_CHANNELS];
-  mutex_t lock;
+  radio_tx_rx_channel_t active_channel;
+  icucnt_t channels[RADIO_TXRX_CHANNELS];
 } radio_tx_rx_handle_t;
 
 /* global handle for Radio Transceiver */

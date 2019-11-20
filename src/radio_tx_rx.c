@@ -13,69 +13,78 @@
 /* global handle for Radio Transceiver */
 radio_tx_rx_handle_t RADIO_TXRX;
 
-/* if a pulse has a period greater than this,
-   then we can consider it as the last pulse in the frame */
-static icucnt_t CHANNEL_PERIOD_THRESHOLD = 10U;
+/**
+ * every count in the icucnt_t variable is a time delta of
+ * (1 / ICU_CLK_FREQ)
+ */
+#define ICU_CLK_FREQ (100U * 1000U)
+
+/*
+ * \notapi
+ * \brief Convert milliseconds to ICU ticks
+ */
+#define MS_TO_ICU_TICKS(ms) (ms * (ICU_CLK_FREQ / 100U))
+
+/**
+ * a PPM pulse width greater than this threshold is the last pulse in a frame
+ */
+static icucnt_t CHAN_WIDTH_THRESHOLD = MS_TO_ICU_TICKS(5U);
 
 /**
  * \notapi
  * Here we can determine the pulse width of a channel
  */
-static void icuWidthCb(ICUDriver *icup) {
-
+static void icuWidthCb(ICUDriver *icup)
+{
   icucnt_t pulse_width = icuGetWidthX(icup);
 
-  if(RADIO_TXRX.state == RADIO_TXRX_ACTIVE) {
-    radio_tx_rx_channel_t chan = RADIO_TXRX.incoming_channel;
-
-    osalMutexLock(&RADIO_TXRX.lock);
-
-    RADIO_TXRX.channels[chan] = pulse_width;
-
-    osalMutexUnlock(&RADIO_TXRX.lock);
-
-  }
-
-}
-
-/**
- * \notapi
- * Here we can determine the width between activation edges,
- * to determine if we've reached the end of the PPM frame
- */
-static void icuPeriodCb(ICUDriver *icup) {
-
-  icucnt_t period_width = icuGetPeriodX(icup);
-
   if(RADIO_TXRX.state == RADIO_TXRX_WAITING) {
-    /* waiting for first channel pulse */
+    /* we're waiting for the first frame */
 
-    /* if period width is above threshold, then incoming pulse is from a new frame */
-    if(period_width >= CHANNEL_PERIOD_THRESHOLD) {
+    if(pulse_width >= CHAN_WIDTH_THRESHOLD) {
+      /* a pulse over the threshold means we've reached the end of the frame,
+         so get ready to read the next incoming frame */
+      RADIO_TXRX.active_channel = RADIO_TXRX_CHAN0;
       RADIO_TXRX.state = RADIO_TXRX_ACTIVE;
-      RADIO_TXRX.incoming_channel = RADIO_TXRX_CHAN0;
     }
 
   } else {
+    /* we're reading the pulse widths of each channel */
 
-    /* if period width is above threshold, then incoming pulse is from a new frame */
-    if(period_width >= CHANNEL_PERIOD_THRESHOLD) { /* TODO: properly set threshold */
-      RADIO_TXRX.incoming_channel = RADIO_TXRX_CHAN0;
+    if(pulse_width >= CHAN_WIDTH_THRESHOLD) {
+
+      /* we've reached the end of the frame */
+      RADIO_TXRX.active_channel = RADIO_TXRX_CHAN0;
+
     } else {
-      if(RADIO_TXRX.incoming_channel + 1 >= RADIO_TXRX_CHANNELS) {
 
-        /* We're somehow getting more channels than necessary on the signal???
-           Set state back to waiting so we wait on a new frame */
+      radio_tx_rx_channel_t chan = RADIO_TXRX.active_channel;
+
+      if(chan >= RADIO_TXRX_CHANNELS) {
+
+        /* something's wrong, we're reading too many channels... */
+        RADIO_TXRX.active_channel = RADIO_TXRX_CHAN0;
         RADIO_TXRX.state = RADIO_TXRX_WAITING;
 
       } else {
 
-        /* move on to the next channel */
-        RADIO_TXRX.incoming_channel += 1;
+        RADIO_TXRX.channels[chan] = pulse_width;
+        RADIO_TXRX.active_channel++;
 
       }
     }
   }
+}
+
+/**
+ * \notapi
+ */
+static void icuOverflowCb(ICUDriver *icup)
+{
+  (void)icup;
+
+  RADIO_TXRX.state = RADIO_TXRX_WAITING;
+  RADIO_TXRX.active_channel = RADIO_TXRX_CHAN0;
 }
 
 /**
@@ -84,10 +93,10 @@ static void icuPeriodCb(ICUDriver *icup) {
 static ICUConfig icucfg =
 {
   ICU_INPUT_ACTIVE_HIGH,
-  10000, /* 10kHz ICU clock frequency.   */
+  ICU_CLK_FREQ,
   icuWidthCb,
-  icuPeriodCb,
-  NULL, /* timer overflow callback, not needed */
+  NULL,
+  icuOverflowCb,
   ICU_CHANNEL_1,
   0
 };
@@ -101,10 +110,8 @@ void radioTxRxInit(radio_tx_rx_handle_t* handle)
   osalDbgCheck(handle != NULL);
   osalDbgCheck(handle->state == RADIO_TXRX_UNINIT);
 
-  osalMutexObjectInit(&handle->lock);
-
   (void)memset((void*)handle->channels, 0U, RADIO_TXRX_CHANNELS*sizeof(icucnt_t));
-  handle->incoming_channel = RADIO_TXRX_CHAN0;
+  handle->active_channel = RADIO_TXRX_CHAN0;
   handle->state = RADIO_TXRX_STOP;
 }
 
@@ -138,11 +145,8 @@ void radioTxRxReadInputs(radio_tx_rx_handle_t* handle, icucnt_t channels[RADIO_T
     (handle->state == RADIO_TXRX_WAITING) ||
     (handle->state == RADIO_TXRX_ACTIVE));
 
-  osalMutexLock(&handle->lock);
-
   for(size_t i = 0U ; i < RADIO_TXRX_CHANNELS ; i++) {
     channels[i] = handle->channels[i];
   }
 
-  osalMutexUnlock(&handle->lock);
 }
