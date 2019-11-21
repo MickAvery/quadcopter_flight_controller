@@ -13,6 +13,7 @@
 typedef enum
 {
   MOTOR_DRIVER_UNINIT = 0,
+  MOTOR_DRIVER_STOPPED,
   MOTOR_DRIVER_READY
 } motor_driver_state_t;
 
@@ -43,6 +44,12 @@ extern motor_driver_handle_t MOTOR_DRIVER;
  * \param[in] handle - Motor driver handle
  */
 void motorDriverInit(motor_driver_handle_t* handle);
+
+/**
+ * \brief Start the Motor Driver
+ * \param[in] handle - Motor driver handle
+ */
+void motorDriverStart(motor_driver_handle_t* handle);
 
 /**
  * Set the duty cycle for each of the motors

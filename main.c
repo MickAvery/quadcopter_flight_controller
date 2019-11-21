@@ -13,6 +13,8 @@
 
 #include "imu_engine.h"
 #include "radio_tx_rx.h"
+#include "motor_driver.h"
+#include "main_controller.h"
 #include "pinconf.h"
 
 static imu_engine_handle_t imu_engine;
@@ -70,7 +72,7 @@ static void ppm_printout(BaseSequentialStream* chp, int argc, char* argv[])
       return;
     }
 
-    icucnt_t channels[RADIO_TXRX_CHANNELS] = {0U};
+    uint32_t channels[RADIO_TXRX_CHANNELS] = {0U};
 
     radioTxRxReadInputs(&RADIO_TXRX, channels);
 
@@ -238,6 +240,14 @@ int main(void) {
   /* start Radio Transceiver Input Capture */
   radioTxRxInit(&RADIO_TXRX);
   radioTxRxStart(&RADIO_TXRX);
+
+  /* start Motor Driver */
+  motorDriverInit(&MOTOR_DRIVER);
+  motorDriverStart(&MOTOR_DRIVER);
+
+  /* start Main Controller */
+  mainControllerInit(&MAIN_CTRL);
+  mainControllerStart(&MAIN_CTRL);
 
   /* loop for shell thread */
   while (1) {
