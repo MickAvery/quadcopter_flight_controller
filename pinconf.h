@@ -35,4 +35,22 @@
 #define ICU_PADNUM  4
 #define ICU_ALTMODE 2
 
+/* PWM output pins */
+
+#define PWM_NW_PORT    GPIOA
+#define PWM_NW_PADNUM  5
+#define PWM_NW_ALTMODE 2
+
+#define PWM_NE_PORT    GPIOB
+#define PWM_NE_PADNUM  3
+#define PWM_NE_ALTMODE 2
+
+#define PWM_SW_PORT    GPIOA
+#define PWM_SW_PADNUM  2
+#define PWM_SW_ALTMODE 2
+
+#define PWM_SE_PORT    GPIOA
+#define PWM_SE_PADNUM  3
+#define PWM_SE_ALTMODE 2
+
 #endif /* _PINCONF_H */
