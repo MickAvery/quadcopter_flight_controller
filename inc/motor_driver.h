@@ -8,6 +8,8 @@
 #ifndef MOTOR_DRIVER_H
 #define MOTOR_DRIVER_H
 
+#include <stdint.h>
+
 typedef enum
 {
   MOTOR_DRIVER_UNINIT = 0,
@@ -41,5 +43,18 @@ extern motor_driver_handle_t MOTOR_DRIVER;
  * \param[in] handle - Motor driver handle
  */
 void motorDriverInit(motor_driver_handle_t* handle);
+
+/**
+ * Set the duty cycle for each of the motors
+ *
+ * Each motor can be driven to either 0% to 100%, take note that:
+ * 100%   -> 10000
+ * 40%    ->  4000
+ * 35.75% ->  3575
+ *
+ * \param[in] handle - Motor driver handle
+ * \pamar[in] duty_cycles - Duty cycles to be used to drive each motor
+ */
+void motorDriverSetDutyCycles(motor_driver_handle_t* handle, uint32_t duty_cycles[MOTOR_DRIVER_MOTORS]);
 
 #endif /* MOTOR_DRIVER_H */
