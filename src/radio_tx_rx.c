@@ -108,6 +108,7 @@ static void icuWidthCb(ICUDriver *icup)
 
 /**
  * \notapi
+ * Something wrong happend, a pulse stayed high for too long
  */
 static void icuOverflowCb(ICUDriver *icup)
 {
