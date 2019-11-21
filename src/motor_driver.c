@@ -56,19 +56,30 @@ static PWMConfig pwmcfg =
 };
 
 /**
- * \brief Initialize the motor driver
+ * \brief Initialize the Motor Driver
  * \param[in] handle - Motor driver handle
  */
 void motorDriverInit(motor_driver_handle_t* handle)
 {
   osalDbgCheck(handle != NULL);
-  osalDbgCheck(handle->state == MOTOR_DRIVER_UNINIT);
+
+  handle->state = MOTOR_DRIVER_STOPPED;
+}
+
+/**
+ * \brief Start the Motor Driver
+ * \param[in] handle - Motor driver handle
+ */
+void motorDriverStart(motor_driver_handle_t* handle)
+{
+  osalDbgCheck(handle != NULL);
+  osalDbgCheck(handle->state == MOTOR_DRIVER_STOPPED);
 
   /* configure pins */
   palSetPadMode(PWM_NW_PORT, PWM_NW_PADNUM, PAL_MODE_ALTERNATE(PWM_NW_ALTMODE));
   palSetPadMode(PWM_NE_PORT, PWM_NE_PADNUM, PAL_MODE_ALTERNATE(PWM_NE_ALTMODE));
   palSetPadMode(PWM_SW_PORT, PWM_SW_PADNUM, PAL_MODE_ALTERNATE(PWM_SW_ALTMODE));
-  palSetPadMode(PWM_NE_PORT, PWM_SE_PADNUM, PAL_MODE_ALTERNATE(PWM_SE_ALTMODE));
+  palSetPadMode(PWM_SE_PORT, PWM_SE_PADNUM, PAL_MODE_ALTERNATE(PWM_SE_ALTMODE));
 
   /* initialize PWM driver */
   pwmStart(&PWMD2, &pwmcfg);
