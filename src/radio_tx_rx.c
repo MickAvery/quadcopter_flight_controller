@@ -31,6 +31,16 @@ radio_tx_rx_handle_t RADIO_TXRX;
 static icucnt_t CHAN_WIDTH_THRESHOLD = MS_TO_ICU_TICKS(5U);
 
 /**
+ * Minimum pulse width in ICU ticks, corresponds to 0.6ms
+ */
+static uint32_t PULSE_WIDTH_MIN = 60;
+
+/**
+ * Maximum pulse width in ICU ticks, corresponds to 1.6ms
+ */
+static uint32_t PULSE_WIDTH_MAX = 160;
+
+/**
  * \notapi
  * Convert the pulse width into a percent value knowing what the minimum and maximum widths are.
  *
@@ -39,15 +49,13 @@ static icucnt_t CHAN_WIDTH_THRESHOLD = MS_TO_ICU_TICKS(5U);
  */
 static uint32_t pulse_width_to_percent(icucnt_t width)
 {
-  /* TODO: magic numbers!!! */
-
-  if(width > 160U) {
-    width = 160U;
-  } else if(width < 60U) {
-    width = 60U;
+  if(width > PULSE_WIDTH_MAX) {
+    width = PULSE_WIDTH_MAX;
+  } else if(width < PULSE_WIDTH_MIN) {
+    width = PULSE_WIDTH_MIN;
   }
 
-  return ((width - 60U) * 10000U) / (160U - 60U);
+  return ((width - PULSE_WIDTH_MIN) * 10000U) / (PULSE_WIDTH_MAX - PULSE_WIDTH_MIN);
 }
 
 /**
