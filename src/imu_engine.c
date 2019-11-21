@@ -131,6 +131,7 @@ THD_FUNCTION(imuEngineThread, arg)
 
       osalMutexUnlock(&handle->lock);
 
+      /* TODO: this might need to be changed... */
       chThdSleepMilliseconds(10);
 
     }
