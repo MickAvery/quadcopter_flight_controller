@@ -10,12 +10,15 @@
 
 #include "hal.h"
 
+/**
+ * Radio transceiver states
+ */
 typedef enum
 {
-  RADIO_TXRX_UNINIT = 0,
-  RADIO_TXRX_STOP,
-  RADIO_TXRX_WAITING,
-  RADIO_TXRX_ACTIVE
+  RADIO_TXRX_UNINIT = 0, /*!< Transceiver is uninitialized */
+  RADIO_TXRX_STOP,       /*!< Transmitter is waiting to be started */
+  RADIO_TXRX_WAITING,    /*!< Transmitter has been started and is waiting on the first frame */
+  RADIO_TXRX_ACTIVE      /*!< Transmitter is reading the signals from each channel in the PPM input */
 } radio_tx_rx_state_t;
 
 typedef enum
@@ -31,11 +34,30 @@ typedef enum
   RADIO_TXRX_CHANNELS
 } radio_tx_rx_channel_t;
 
+/**
+ * The signals corresponding to each channel of the PPM input,
+ * assuming that the FS-iA6B transceiver is used along with the FS-i6 radio.
+ */
+typedef enum
+{
+  RADIO_TXRX_ROLL = 0,
+  RADIO_TXRX_PITCH,
+  RADIO_TXRX_ALTITUDE,
+  RADIO_TXRX_YAW,
+  RADIO_TXRX_VRA,
+  RADIO_TXRX_VRB,
+  RADIO_TXRX_UNKNOWN_A,
+  RADIO_TXRX_UNKNOWN_B
+} radio_tx_rx_chan_def_t;
+
+/**
+ * Radio transceiver handle
+ */
 typedef struct
 {
-  radio_tx_rx_state_t state;
-  radio_tx_rx_channel_t active_channel;
-  icucnt_t channels[RADIO_TXRX_CHANNELS];
+  radio_tx_rx_state_t state;              /*!< State of the radio transceiver */
+  radio_tx_rx_channel_t active_channel;   /*!< The next pulse corresponds to this channel */
+  uint32_t channels[RADIO_TXRX_CHANNELS]; /*!< The signal strength of each channel (in percent) */
 } radio_tx_rx_handle_t;
 
 /* global handle for Radio Transceiver */

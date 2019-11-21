@@ -75,7 +75,7 @@ static void ppm_printout(BaseSequentialStream* chp, int argc, char* argv[])
     radioTxRxReadInputs(&RADIO_TXRX, channels);
 
     for(size_t i = 0U ; i < RADIO_TXRX_CHANNELS ; i++) {
-      chprintf(chp, "%u", channels[i]);
+      chprintf(chp, "%5u", channels[i]);
 
       if(i + 1 < RADIO_TXRX_CHANNELS) {
         chprintf(chp, "\t");

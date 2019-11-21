@@ -32,6 +32,26 @@ static icucnt_t CHAN_WIDTH_THRESHOLD = MS_TO_ICU_TICKS(5U);
 
 /**
  * \notapi
+ * Convert the pulse width into a percent value knowing what the minimum and maximum widths are.
+ *
+ * To avoid floating point arithmetic, percente values are multiplied by 100,
+ * such that 100% becomes 10000, 40% becomes 4000, and 60.75% becomes 6075
+ */
+static uint32_t pulse_width_to_percent(icucnt_t width)
+{
+  /* TODO: magic numbers!!! */
+
+  if(width > 160U) {
+    width = 160U;
+  } else if(width < 60U) {
+    width = 60U;
+  }
+
+  return ((width - 60U) * 10000U) / (160U - 60U);
+}
+
+/**
+ * \notapi
  * Here we can determine the pulse width of a channel
  */
 static void icuWidthCb(ICUDriver *icup)
@@ -68,7 +88,9 @@ static void icuWidthCb(ICUDriver *icup)
 
       } else {
 
-        RADIO_TXRX.channels[chan] = pulse_width;
+        uint32_t percent = pulse_width_to_percent(pulse_width);
+
+        RADIO_TXRX.channels[chan] = percent;
         RADIO_TXRX.active_channel++;
 
       }
@@ -110,7 +132,7 @@ void radioTxRxInit(radio_tx_rx_handle_t* handle)
   osalDbgCheck(handle != NULL);
   osalDbgCheck(handle->state == RADIO_TXRX_UNINIT);
 
-  (void)memset((void*)handle->channels, 0U, RADIO_TXRX_CHANNELS*sizeof(icucnt_t));
+  (void)memset((void*)handle->channels, 0U, RADIO_TXRX_CHANNELS*sizeof(uint32_t));
   handle->active_channel = RADIO_TXRX_CHAN0;
   handle->state = RADIO_TXRX_STOP;
 }
@@ -138,7 +160,7 @@ void radioTxRxStart(radio_tx_rx_handle_t* handle)
  * \param[in]  handle - radio transceiver handle
  * \param[out] channels - signal values on each channel
  */
-void radioTxRxReadInputs(radio_tx_rx_handle_t* handle, icucnt_t channels[RADIO_TXRX_CHANNELS])
+void radioTxRxReadInputs(radio_tx_rx_handle_t* handle, uint32_t channels[RADIO_TXRX_CHANNELS])
 {
   osalDbgCheck(handle != NULL);
   osalDbgCheck(
