@@ -23,7 +23,7 @@ radio_tx_rx_handle_t RADIO_TXRX;
  * \notapi
  * \brief Convert milliseconds to ICU ticks
  */
-#define MS_TO_ICU_TICKS(ms) (ms * (ICU_CLK_FREQ / 100U))
+#define MS_TO_ICU_TICKS(ms) (ms * (ICU_CLK_FREQ / 1000U))
 
 /**
  * a PPM pulse width greater than this threshold is the last pulse in a frame
