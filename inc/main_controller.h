@@ -10,6 +10,9 @@
 #ifndef MAIN_CONTROLLER_H
 #define MAIN_CONTROLLER_H
 
+/**
+ * Main controller states
+ */
 typedef enum
 {
   MAIN_CTRL_UNINIT = 0,
@@ -17,6 +20,9 @@ typedef enum
   MAIN_CTRL_RUNNING
 } main_ctrl_state_t;
 
+/**
+ * Main controller handle definition
+ */
 typedef struct
 {
   main_ctrl_state_t state;

@@ -68,6 +68,7 @@ void mainControllerStart(main_ctrl_handle_t* handle)
 
   handle->state = MAIN_CTRL_RUNNING;
 
+  /* start the main controller thread */
   chThdCreateStatic(
     mainControllerThreadWorkingArea,
     sizeof(mainControllerThreadWorkingArea),

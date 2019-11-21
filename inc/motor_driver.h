@@ -10,6 +10,9 @@
 
 #include <stdint.h>
 
+/**
+ * Motor driver states
+ */
 typedef enum
 {
   MOTOR_DRIVER_UNINIT = 0,
@@ -29,6 +32,9 @@ typedef enum
   MOTOR_DRIVER_MOTORS  /*!< Number of motors being driven */
 } motor_driver_positions_t;
 
+/**
+ * Motor driver handle
+ */
 typedef struct
 {
   motor_driver_state_t state;
