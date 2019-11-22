@@ -11,13 +11,11 @@
 #include "shell.h"
 #include "chprintf.h"
 
-#include "imu_engine.h"
+#include "IMU_ENGINE.h"
 #include "radio_tx_rx.h"
 #include "motor_driver.h"
 #include "main_controller.h"
 #include "pinconf.h"
-
-static imu_engine_handle_t imu_engine;
 
 #define SHELL_WORKING_AREA_SIZE THD_WORKING_AREA_SIZE(2048)
 
@@ -40,10 +38,10 @@ static void csv(BaseSequentialStream* chp, int argc, char* argv[])
     size_t y = IMU_DATA_Y;
     size_t z = IMU_DATA_Z;
 
-    imuEngineGetData(&imu_engine, accel, IMU_ENGINE_ACCEL);
-    imuEngineGetData(&imu_engine, gyro, IMU_ENGINE_GYRO);
-    imuEngineGetData(&imu_engine, mag, IMU_ENGINE_MAG);
-    imuEngineGetData(&imu_engine, euler, IMU_ENGINE_EULER);
+    imuEngineGetData(&IMU_ENGINE, accel, IMU_ENGINE_ACCEL);
+    imuEngineGetData(&IMU_ENGINE, gyro, IMU_ENGINE_GYRO);
+    imuEngineGetData(&IMU_ENGINE, mag, IMU_ENGINE_MAG);
+    imuEngineGetData(&IMU_ENGINE, euler, IMU_ENGINE_EULER);
 
     chprintf(
       chp,
@@ -125,8 +123,8 @@ static void mag_calibrate(BaseSequentialStream* chp, int argc, char* argv[])
     float acc[IMU_DATA_AXES] = {0.0f};
     float mag[IMU_DATA_AXES] = {0.0f};
 
-    imuEngineGetData(&imu_engine, acc, IMU_ENGINE_ACCEL);
-    imuEngineGetData(&imu_engine, mag, IMU_ENGINE_MAG);
+    imuEngineGetData(&IMU_ENGINE, acc, IMU_ENGINE_ACCEL);
+    imuEngineGetData(&IMU_ENGINE, mag, IMU_ENGINE_MAG);
 
     /* determine max and min from data so far */
     for(size_t i = 0U ; i < IMU_DATA_AXES ; i++) {
@@ -183,7 +181,7 @@ static void mag_calibrate(BaseSequentialStream* chp, int argc, char* argv[])
     mag_offset[IMU_DATA_Y],
     mag_offset[IMU_DATA_Z]);
 
-  if(imuEngineMagCalibrate(&imu_engine, mag_offset) != IMU_ENGINE_OK) {
+  if(imuEngineMagCalibrate(&IMU_ENGINE, mag_offset) != IMU_ENGINE_OK) {
     chprintf(chp, "failed to calibrate magnetometer\n");
   } else {
     chprintf(chp, "successfully calibrated magnetometer\n");
@@ -234,8 +232,8 @@ int main(void) {
   i2cStart(&I2CD2, &i2ccfg);
 
   /* start IMU Engine */
-  imuEngineInit(&imu_engine);
-  imuEngineStart(&imu_engine);
+  imuEngineInit(&IMU_ENGINE);
+  imuEngineStart(&IMU_ENGINE);
 
   /* start Radio Transceiver Input Capture */
   radioTxRxInit(&RADIO_TXRX);

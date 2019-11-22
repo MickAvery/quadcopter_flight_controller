@@ -20,6 +20,11 @@
 #endif
 
 /**
+ * Global IMU Engine handler
+ */
+imu_engine_handle_t IMU_ENGINE;
+
+/**
  * Sensor handles and configs
  */
 

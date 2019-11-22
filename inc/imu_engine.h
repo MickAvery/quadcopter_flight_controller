@@ -64,6 +64,11 @@ typedef struct
 } imu_engine_handle_t;
 
 /**
+ * Global IMU Engine handler
+ */
+extern imu_engine_handle_t IMU_ENGINE;
+
+/**
  * \brief Initialize the IMU Engine
  * \param[in] handle - pointer to engine handle
  */
