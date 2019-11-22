@@ -128,6 +128,7 @@ CSRC = $(STARTUPSRC) \
        src/radio_tx_rx.c \
        src/motor_driver.c \
        src/main_controller.c \
+       src/pid.c \
        main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
