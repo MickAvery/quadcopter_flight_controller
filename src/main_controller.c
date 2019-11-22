@@ -44,8 +44,8 @@ static hysteresis_range_t hysteresis_ranges[HYSTERESIS_STATES] =
   /* MIN = 0%, MAX = 25% */
   { 0U,    2500U }, /* grounded */
 
-  /* MIN = 10%, MAX = 100% */
-  { 1000U, 10000U } /* liftoff */
+  /* MIN = 15%, MAX = 100% */
+  { 1500U, 10000U } /* liftoff */
 };
 
 /**
