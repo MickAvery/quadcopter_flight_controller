@@ -23,7 +23,7 @@ typedef struct
 
 /**
  * \brief Initialize the PID controller
- * \param[in] pid - pid handle
+ * \param[in] pid - PID controller handle
  * \param[in] k_p - Proportional constant
  * \param[in] k_i - Integral constant
  * \param[in] k_d - Derivative constant
@@ -44,5 +44,11 @@ void pidInit(pid_ctrl_handle_t* pid, float k_p, float k_i, float k_d);
  *         Derivative (D) terms.
  **/
 float pidCompute(pid_ctrl_handle_t* pid, float setpoint, float input);
+
+/**
+ * \brief Reset the PID controller
+ * \param[in] pid - PID controller handle
+ */
+void pidReset(pid_ctrl_handle_t* pid);
 
 #endif /* PID_H */

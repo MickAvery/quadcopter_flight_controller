@@ -70,3 +70,15 @@ float pidCompute(pid_ctrl_handle_t* pid, float setpoint, float input)
 
   return ( -proportional + integral - derivative );
 }
+
+/**
+ * \brief Reset the PID controller
+ * \param[in] pid - PID controller handle
+ */
+void pidReset(pid_ctrl_handle_t* pid)
+{
+  osalDbgCheck(pid != NULL);
+
+  pid->previous_in = 0.0f;
+  pid->integral_err = 0.0f;
+}
