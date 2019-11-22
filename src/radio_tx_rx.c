@@ -181,3 +181,12 @@ void radioTxRxReadInputs(radio_tx_rx_handle_t* handle, uint32_t channels[RADIO_T
   }
 
 }
+
+/**
+ * \brief Get the state of the radio transceiver
+ * \param[in] handle - radio transceiver handle
+ */
+radio_tx_rx_state_t radioTxRxGetState(radio_tx_rx_handle_t* handle)
+{
+  return handle->state;
+}

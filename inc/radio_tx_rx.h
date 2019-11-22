@@ -11,6 +11,11 @@
 #include "hal.h"
 
 /**
+ * Frame length in milliseconds
+ */
+#define RADIO_PPM_LENGTH_MS 20U
+
+/**
  * Radio transceiver states
  */
 typedef enum
@@ -42,7 +47,7 @@ typedef enum
 {
   RADIO_TXRX_ROLL = 0,
   RADIO_TXRX_PITCH,
-  RADIO_TXRX_ALTITUDE,
+  RADIO_TXRX_THROTTLE,
   RADIO_TXRX_YAW,
   RADIO_TXRX_VRA,
   RADIO_TXRX_VRB,
@@ -81,5 +86,11 @@ void radioTxRxStart(radio_tx_rx_handle_t* handle);
  * \param[out] channels - signal values on each channel
  */
 void radioTxRxReadInputs(radio_tx_rx_handle_t* handle, uint32_t channels[RADIO_TXRX_CHANNELS]);
+
+/**
+ * \brief Get the state of the radio transceiver
+ * \param[in] handle - radio transceiver handle
+ */
+radio_tx_rx_state_t radioTxRxGetState(radio_tx_rx_handle_t* handle);
 
 #endif /* RADIO_TX_RX_H */
