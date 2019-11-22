@@ -5,6 +5,9 @@
  * Algorithms for PID calculation
  **/
 
+#ifndef PID_H
+#define PID_H
+
 #include <stdint.h>
 
 /**
@@ -20,3 +23,5 @@
  *         Derivative (D) terms.
  **/
 int32_t pid_algorithm(int32_t desired_output, int32_t actual_output);
+
+#endif /* PID_H */
