@@ -234,8 +234,8 @@ int main(void) {
   i2cStart(&I2CD2, &i2ccfg);
 
   /* start IMU Engine */
-  // imuEngineInit(&imu_engine);
-  // imuEngineStart(&imu_engine);
+  imuEngineInit(&imu_engine);
+  imuEngineStart(&imu_engine);
 
   /* start Radio Transceiver Input Capture */
   radioTxRxInit(&RADIO_TXRX);
