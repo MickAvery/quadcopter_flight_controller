@@ -1,37 +1,72 @@
+/**
+ * \file   pid.c
+ * \author Mav Cuyugan
+ *
+ * PID Controller API
+ */
+
 #include "pid.h"
+#include "hal.h"
 
-static uint32_t k_p = 1U; /* proportional constant */
-static uint32_t k_i = 0U; /* integral constant */
-static uint32_t k_d = 0U; /* derivative constant */
+/**
+ * \brief Initialize the PID controller
+ * \param[in] pid - PID controller handle
+ * \param[in] k_p - Proportional constant
+ * \param[in] k_i - Integral constant
+ * \param[in] k_d - Derivative constant
+ */
+void pidInit(pid_ctrl_handle_t* pid, float k_p, float k_i, float k_d)
+{
+  osalDbgCheck(pid != NULL);
 
-static int32_t previous_error = 0; /* previous recorded error */
-static int32_t integral_error = 0; /* summation of integral errors */
+  pid->k_p = k_p;
+  pid->k_i = k_i;
+  pid->k_p = k_d;
+
+  pid->previous_in = 0.0f;
+  pid->integral_err = 0.0f;
+}
 
 /**
  * Apply correction to an error value based on desired output
  * and actual output from stability process
  *
- * \param[in] desired_output - the desired output from a process
- * \param[in] actual_output  - the actual output from a process,
- *                             most likely different from desired
+ * \param[in] pid      - PID controller handle
+ * \param[in] setpoint - the desired output from a process
+ * \param[in] input    - the value value from a process,
+ *                       most likely different from desired
  *
  * \return Amount of correction needed to achieve desired output,
  *         based on Proportional (P), Integral (I), and
  *         Derivative (D) terms.
  **/
-int32_t pid_algorithm(int32_t desired_output, int32_t actual_output)
+float pidCompute(pid_ctrl_handle_t* pid, float setpoint, float input)
 {
-  int32_t error;
-  int32_t prop, integ, deriv;
+  float proportional, integral, derivative;
 
-  error = desired_output - actual_output;
-  integral_error += error;
+  /* get error */
+  float error = setpoint - input;
 
-  prop = k_p * ( error );
-  integ = k_i * ( integral_error );
-  deriv = k_d * ( error - previous_error );
+  /* get derivative of input */
+  float input_deriv = input - pid->previous_in;
+  pid->previous_in = input;
 
-  previous_error = error;
+  /* update integral error */
+  pid->integral_err += error;
+  integral = pid->k_i * pid->integral_err;
 
-  return ( prop + integ + deriv );
+  /**
+   * design choice : proportional on measurement
+   * http://brettbeauregard.com/blog/2017/06/introducing-proportional-on-measurement/
+   */
+  proportional = pid->k_p * input_deriv;
+
+  /**
+   * design choice : derivative on measurement
+   * https://controlguru.com/pid-control-and-derivative-on-measurement/
+   * http://brettbeauregard.com/blog/2011/04/improving-the-beginner%e2%80%99s-pid-derivative-kick/
+   */
+  derivative = pid->k_d * input_deriv;
+
+  return ( -proportional + integral - derivative );
 }
