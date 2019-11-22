@@ -22,13 +22,19 @@ typedef enum
 
 /**
  * Describes the indeces corresponding to each motor
+ *
+ *  0  1
+ *   \/
+ *   /\
+ *  3  2
+ *
  */
 typedef enum
 {
   MOTOR_DRIVER_NW = 0, /*!< Northwest motor */
   MOTOR_DRIVER_NE,     /*!< Northeast motor */
-  MOTOR_DRIVER_SW,     /*!< Southwest motor */
   MOTOR_DRIVER_SE,     /*!< Southeast motor */
+  MOTOR_DRIVER_SW,     /*!< Southwest motor */
   MOTOR_DRIVER_MOTORS  /*!< Number of motors being driven */
 } motor_driver_positions_t;
 
