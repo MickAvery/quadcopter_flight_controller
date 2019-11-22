@@ -178,9 +178,17 @@ THD_FUNCTION(mainControllerThread, arg)
         float roll_setpoint = signal_to_euler_angle(roll_signal);
         float pitch_setpoint = signal_to_euler_angle(pitch_signal);
 
+        /* read imu data */
+        float euler_angles[IMU_DATA_AXES] = {0.0f};
+        imuEngineGetData(&IMU_ENGINE, euler_angles, IMU_ENGINE_EULER);
+
         /* run PID control loop  */
-        float roll_correction = pidCompute(&roll_pid, roll_setpoint, 0.0f);
-        float pitch_correction = pidCompute(&pitch_pid, pitch_setpoint, 0.0f);
+        float roll_correction = pidCompute(&roll_pid, roll_setpoint, euler_angles[IMU_ENGINE_ROLL]);
+        float pitch_correction = pidCompute(&pitch_pid, pitch_setpoint, euler_angles[IMU_ENGINE_PITCH]);
+
+        /* convert correction to PWM duty cycles */
+        (void)roll_correction;
+        (void)pitch_correction;
 
         for(size_t i = 0 ; i < MOTOR_DRIVER_MOTORS ; i++) {
           duty_cycles[i] = channels[RADIO_TXRX_THROTTLE];
