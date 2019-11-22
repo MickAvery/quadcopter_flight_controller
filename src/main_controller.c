@@ -65,13 +65,10 @@ static pid_ctrl_handle_t pitch_pid;
  */
 static float signal_to_euler_angle(uint32_t signal)
 {
-  float ret = 0.0f;
   float percent = (float)signal / 100.0f / 100.0f;
 
   /* TODO: magic numbers */
-  ret = percent * (30.0f - (-30.0f)) + (-30.0f);
-
-  return ret;
+  return percent * (30.0f - (-30.0f)) + (-30.0f);
 }
 
 /**
