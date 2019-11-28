@@ -42,6 +42,8 @@ void pidInit(pid_ctrl_handle_t* pid, float k_p, float k_i, float k_d)
  **/
 float pidCompute(pid_ctrl_handle_t* pid, float setpoint, float input)
 {
+  osalDbgCheck(pid != NULL);
+
   float proportional, integral, derivative;
 
   /* get error */
