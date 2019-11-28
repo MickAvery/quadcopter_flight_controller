@@ -100,7 +100,7 @@ THD_FUNCTION(imuEngineThread, arg)
 
       handle->gyro_data[IMU_DATA_X] = readings.gyro_x;
       handle->gyro_data[IMU_DATA_Y] = readings.gyro_y;
-      handle->gyro_data[IMU_DATA_Z] = readings.gyro_x;
+      handle->gyro_data[IMU_DATA_Z] = readings.gyro_z;
 
       handle->mag_data[IMU_DATA_X] = mag_readings.mag_x;
       handle->mag_data[IMU_DATA_Y] = mag_readings.mag_y;
@@ -208,10 +208,10 @@ void imuEngineGetData(imu_engine_handle_t* handle, float data[IMU_DATA_AXES], im
       src = handle->accel_data;
       break;
     case IMU_ENGINE_GYRO:
-      src = handle->accel_data;
+      src = handle->gyro_data;
       break;
     case IMU_ENGINE_MAG:
-      src = handle->accel_data;
+      src = handle->mag_data;
       break;
     case IMU_ENGINE_EULER:
       src = handle->euler_angles;
