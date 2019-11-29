@@ -123,13 +123,6 @@ THD_FUNCTION(mainControllerThread, arg)
   } while(throttle_signal >= hysteresis_ranges[flight_state].max);
 
   /**
-   * Initialize our PID controllers;
-   */
-  pidInit(&roll_pid,  1.0f, 0.0f, 1.0f);
-  pidInit(&pitch_pid, 1.0f, 0.0f, 1.0f);
-  // pidInit(&yaw_pid,   1.0f, 0.0f, 1.0f);
-
-  /**
    * Main logic
    */
 
@@ -220,6 +213,11 @@ THD_FUNCTION(mainControllerThread, arg)
 void mainControllerInit(main_ctrl_handle_t* handle)
 {
   osalDbgCheck(handle != NULL);
+
+  /* initialize our PID controllers */
+  pidInit(&roll_pid,  1.0f, 0.1f, 0.05f);
+  pidInit(&pitch_pid, 1.0f, 0.1f, 0.05f);
+  // pidInit(&yaw_pid,   1.0f, 0.0f, 1.0f);
 
   handle->state = MAIN_CTRL_STOPPED;
 }
