@@ -16,3 +16,4 @@ script:
   - make
   - make check
   - make cppcheck
+  - cat err.xml
