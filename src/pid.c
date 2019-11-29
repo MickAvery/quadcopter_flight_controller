@@ -21,7 +21,7 @@ void pidInit(pid_ctrl_handle_t* pid, float k_p, float k_i, float k_d)
 
   pid->k_p = k_p;
   pid->k_i = k_i;
-  pid->k_p = k_d;
+  pid->k_d = k_d;
 
   pid->previous_in = 0.0f;
   pid->integral_err = 0.0f;
