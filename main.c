@@ -11,7 +11,7 @@
 #include "shell.h"
 #include "chprintf.h"
 
-#include "IMU_ENGINE.h"
+#include "imu_engine.h"
 #include "radio_tx_rx.h"
 #include "motor_driver.h"
 #include "main_controller.h"
