@@ -87,18 +87,21 @@ PROJECT = quadcopter
 
 # Imported source files and paths
 CHIBIOS = third_party/ChibiOS
+CONFDIR = ./cfg
 ROOT    = .
 CPPUTEST= third_party/CppUTest
 TEST_DIR= $(ROOT)/test
 TESTOBJDIR= $(ROOT)/test/obj
 
+# Licensing files.
+include $(CHIBIOS)/os/license/license.mk
 # Startup files.
 include $(CHIBIOS)/os/common/startup/ARMCMx/compilers/GCC/mk/startup_stm32f4xx.mk
 # HAL-OSAL files (optional).
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/hal/ports/STM32/STM32F4xx/platform.mk
 include $(CHIBIOS)/os/hal/boards/ST_STM32F4_DISCOVERY/board.mk
-include $(CHIBIOS)/os/hal/osal/rt/osal.mk
+include $(CHIBIOS)/os/hal/osal/rt-nil/osal.mk
 # RTOS files (optional).
 include $(CHIBIOS)/os/rt/rt.mk
 include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
@@ -113,16 +116,7 @@ LDSCRIPT= $(STARTUPLD)/STM32F407xG.ld
 
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
-CSRC = $(STARTUPSRC) \
-       $(KERNSRC) \
-       $(PORTSRC) \
-       $(OSALSRC) \
-       $(HALSRC) \
-       $(PLATFORMSRC) \
-       $(BOARDSRC) \
-       $(TESTSRC) \
-       $(STREAMSSRC) \
-       $(SHELLSRC) \
+CSRC = $(ALLCSRC) \
        $(DRIVERSRC) \
        src/imu_engine.c \
        src/radio_tx_rx.c \
@@ -133,7 +127,7 @@ CSRC = $(STARTUPSRC) \
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
-CPPSRC =
+CPPSRC = $(ALLCPPSRC)
 
 # C sources to be compiled in ARM mode regardless of the global setting.
 # NOTE: Mixing ARM and THUMB mode enables the -mthumb-interwork compiler
@@ -156,14 +150,12 @@ TCSRC =
 TCPPSRC =
 
 # List ASM source files here
-ASMSRC =
-ASMXSRC = $(STARTUPASM) $(PORTASM) $(OSALASM)
 
-INCDIR = $(CHIBIOS)/os/license \
-         $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
-         $(HALINC) $(PLATFORMINC) $(BOARDINC) $(TESTINC) \
-         $(STREAMSINC) $(SHELLINC) $(DRIVERINC) ./inc \
-         $(CHIBIOS)/os/various
+ASMSRC = $(ALLASMSRC)
+ASMXSRC = $(ALLXASMSRC)
+
+INCDIR = $(CONFDIR) $(ALLINC) \
+         $(DRIVERINC) ./inc
 
 #
 # Project, sources and paths
@@ -261,5 +253,5 @@ check: $(TESTOBJDIR) lsm6dsl_unit_test iis2mdc_unit_test
 cppcheck:
 	cppcheck --verbose --force --error-exitcode=1 --enable=style . -i third_party/ 2> err.xml
 
-# RULESPATH = $(CHIBIOS)/os/common/startup/ARMCMx/compilers/GCC
-include $(ROOT)/rules.mk
+RULESPATH = $(CHIBIOS)/os/common/startup/ARMCMx/compilers/GCC/mk
+include $(RULESPATH)/rules.mk

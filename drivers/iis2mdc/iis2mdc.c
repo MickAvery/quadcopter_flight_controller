@@ -11,7 +11,7 @@
 
 static i2caddr_t iis2mdc_addr = 0b00011110;
 
-static systime_t timeout = MS2ST(10U);
+static sysinterval_t timeout = TIME_MS2I(10U);
 
 static uint8_t offset_x_reg_l_addr = 0x45U;
 static uint8_t status_addr         = 0x67U;

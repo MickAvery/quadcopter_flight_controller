@@ -32,7 +32,7 @@ static float gyro_sensitivities_list[LSM6DSL_GYRO_FS_MAX] =
 /**
  * \brief Global timeout for i2c calls
  */
-static systime_t timeout = MS2ST(10U);
+static sysinterval_t timeout = TIME_MS2I(10U);
 
 /**
  * \brief LSM6DSL slave address when SDA is grounded

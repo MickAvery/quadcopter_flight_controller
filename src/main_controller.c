@@ -13,9 +13,6 @@
 #include "motor_driver.h"
 #include "pid.h"
 
-// debug use only TODO: remove when done
-#include "chprintf.h"
-
 /**
  * Global main controller handle
  */
