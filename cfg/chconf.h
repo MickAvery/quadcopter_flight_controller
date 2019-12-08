@@ -31,6 +31,13 @@
 #define _CHIBIOS_RT_CONF_
 #define _CHIBIOS_RT_CONF_VER_6_1_
 
+/**
+ * @brief   Float type support.
+ */
+#if !defined(CHPRINTF_USE_FLOAT) || defined(__DOXYGEN__)
+#define CHPRINTF_USE_FLOAT          TRUE
+#endif
+
 /*===========================================================================*/
 /**
  * @name System timers settings
