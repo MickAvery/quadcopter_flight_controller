@@ -19,7 +19,7 @@
 
 #define SHELL_WORKING_AREA_SIZE THD_WORKING_AREA_SIZE(2048)
 
-static void csv(BaseSequentialStream* chp, int argc, char* argv[])
+static void tsv(BaseSequentialStream* chp, int argc, char* argv[])
 {
   (void)argc;
   (void)argv;
@@ -190,7 +190,7 @@ static void mag_calibrate(BaseSequentialStream* chp, int argc, char* argv[])
 
 static const ShellCommand shellcmds[] =
 {
-  {"csv", csv},
+  {"tsv", tsv},
   {"ppm", ppm_printout},
   {"mag_calibrate", mag_calibrate},
   {NULL, NULL}
