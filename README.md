@@ -58,6 +58,6 @@ Next, have **two** terminal windows open, and in each one:
 
 ### Using ChibiStudio for Windows
 
-ChibiOS provides a free Eclipse-based IDE for Windows computers that you can [download here](http://www.chibios.org/dokuwiki/doku.php?id=chibios:product:chibistudio:start). Download and unzip the file into `C:\`. Right-click on **Project Explorer**, go to **Import > C/C++ ? Existing Code as Makefile Project**, then point to the codebase location. Build the project, then flash.
+ChibiOS provides a free Eclipse-based IDE for Windows computers that you can [download here](http://www.chibios.org/dokuwiki/doku.php?id=chibios:product:chibistudio:start). Download and unzip the file into `C:\`. Right-click on **Project Explorer**, go to **Import > C/C++ > Existing Code as Makefile Project**, then point to the codebase location. Build the project, then flash.
 
 Instructions incomplete for now, I'll add to this later on. For now, at least you know how to compile the code and load it into the board.
