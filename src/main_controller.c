@@ -12,6 +12,7 @@
 #include "radio_tx_rx.h"
 #include "motor_driver.h"
 #include "pid.h"
+#include "chprintf.h"
 
 /**
  * Global main controller handle
@@ -65,7 +66,21 @@ static float signal_to_euler_angle(uint32_t signal)
   float percent = (float)signal / 100.0f / 100.0f;
 
   /* TODO: magic numbers */
+  /* normalize */
   return percent * (30.0f - (-30.0f)) + (-30.0f);
+}
+
+/**
+ * \notapi
+ * \brief Get desired PWM duty cycle fed to motors from euler angle
+ */
+static uint32_t euler_angle_to_signal(float angle)
+{
+  /* TODO: magic numbers */
+  /* normalize */
+  float percent = (angle - (-30.0f)) / (30.0f - (-30.0f));
+
+  return (uint32_t)(percent * 100.0f * 100.0f);
 }
 
 /**
@@ -173,15 +188,37 @@ THD_FUNCTION(mainControllerThread, arg)
         imuEngineGetData(&IMU_ENGINE, euler_angles, IMU_ENGINE_EULER);
 
         /* run PID control loop  */
-        float roll_correction = pidCompute(&roll_pid, roll_setpoint, euler_angles[IMU_ENGINE_ROLL]);
-        float pitch_correction = pidCompute(&pitch_pid, pitch_setpoint, euler_angles[IMU_ENGINE_PITCH]);
+        float roll_correct_angle = pidCompute(&roll_pid, roll_setpoint, euler_angles[IMU_ENGINE_ROLL]);
+        float pitch_correct_angle = pidCompute(&pitch_pid, pitch_setpoint, euler_angles[IMU_ENGINE_PITCH]);
 
         /* convert correction to PWM duty cycles */
-        (void)roll_correction;
-        (void)pitch_correction;
+        uint32_t roll_correct_pwm = euler_angle_to_signal(roll_correct_angle);
+        uint32_t pitch_correct_pwm = euler_angle_to_signal(pitch_correct_angle);
 
+        chprintf((BaseSequentialStream*)&SD4,
+          "roll setpoint : %.2f\tpitch setpoint : %.2f\n"
+          "roll corr : %d\tpitch corr : %d\n\n",
+          roll_setpoint, pitch_setpoint, roll_correct_pwm, pitch_correct_pwm);
+
+        /**
+         * https://robotics.stackexchange.com/questions/2964/quadcopter-pid-output?lq=1
+         */
         for(size_t i = 0 ; i < MOTOR_DRIVER_MOTORS ; i++) {
-          duty_cycles[i] = channels[RADIO_TXRX_THROTTLE];
+          uint32_t pwm = 0U;
+          uint32_t throttle = channels[RADIO_TXRX_THROTTLE];
+
+          if(i == MOTOR_DRIVER_NW) {
+            pwm = throttle + (pitch_correct_pwm / 2) - (roll_correct_pwm / 2);
+          } else if(i == MOTOR_DRIVER_NE) {
+            pwm = throttle + (pitch_correct_pwm / 2) + (roll_correct_pwm / 2);
+          } else if(i == MOTOR_DRIVER_SE) {
+            pwm = throttle - (pitch_correct_pwm / 2) + (roll_correct_pwm / 2);
+          } else if(i == MOTOR_DRIVER_SW) {
+            pwm = throttle - (pitch_correct_pwm / 2) - (roll_correct_pwm / 2);
+          }
+
+          duty_cycles[i] = pwm;
+          // duty_cycles[i] = channels[RADIO_TXRX_THROTTLE];
         }
 
         /* perform hysteresis */
@@ -212,8 +249,8 @@ void mainControllerInit(main_ctrl_handle_t* handle)
   osalDbgCheck(handle != NULL);
 
   /* initialize our PID controllers */
-  pidInit(&roll_pid,  1.0f, 0.1f, 0.05f);
-  pidInit(&pitch_pid, 1.0f, 0.1f, 0.05f);
+  pidInit(&roll_pid,  3.0f, 5.5f, 4.0f);
+  pidInit(&pitch_pid, 3.0f, 5.5f, 4.0f);
   // pidInit(&yaw_pid,   1.0f, 0.0f, 1.0f);
 
   handle->state = MAIN_CTRL_STOPPED;
