@@ -16,7 +16,7 @@
 
 /* let's define PI */
 #ifndef M_PI
-#define M_PI 3.14159265358979323846
+#define M_PI 3.14159265358979323846f
 #endif
 
 /**
@@ -109,9 +109,12 @@ THD_FUNCTION(imuEngineThread, arg)
       if(first_reading) {
         handle->euler_angles[IMU_ENGINE_ROLL] = atan2f(readings.acc_x, readings.acc_z) * 180.0f / M_PI; /* roll */
         handle->euler_angles[IMU_ENGINE_PITCH] = atan2f(readings.acc_y, readings.acc_z) * 180.0f / M_PI; /* pitch */
+
+        first_reading = false;
+
       } else {
-        float roll_gyro = handle->euler_angles[IMU_ENGINE_ROLL] + readings.gyro_y * 10.0f; /* roll */
-        float pitch_gyro = handle->euler_angles[IMU_ENGINE_PITCH] + readings.gyro_x * 10.0f; /* pitch */
+        float roll_gyro = handle->euler_angles[IMU_ENGINE_ROLL] + readings.gyro_y * 0.00001f; /* roll (gyro / 1000 * 0.01 -> dt)*/
+        float pitch_gyro = handle->euler_angles[IMU_ENGINE_PITCH] + readings.gyro_x * 0.00001f; /* pitch (gyro / 1000 * 0.01 -> dt) */
 
         float roll_acc = atan2f(readings.acc_x, readings.acc_z) * 180.0f / M_PI;
         float pitch_acc = atan2f(readings.acc_y, readings.acc_z) * 180.0f / M_PI;
@@ -129,6 +132,13 @@ THD_FUNCTION(imuEngineThread, arg)
         float mag_z = mag_readings.mag_z;
 
         /* finally, compute yaw */
+        /* https://community.st.com/s/question/0D50X00009XkX3s/lsm303agr-conversion-accelerometers-and-magnetometers-output-to-pitch-roll-and-yaw */
+
+        // float By2 = mag_z * sinf(roll) - mag_y * cosf(roll);
+        // float Bz2 = mag_y * sinf(roll) + mag_z * cosf(roll);
+        // float Bx3 = mag_x * cosf(pitch) + Bz2 * sinf(pitch);
+        // handle->euler_angles[IMU_ENGINE_YAW] = atan2f(By2, Bx3);// * 180.0f / M_PI;
+
         float y = (-mag_y * cosf(roll)) + (mag_z * sinf(roll));
         float x = (mag_x * cosf(pitch)) + (mag_y * sinf(pitch) * sinf(roll)) + (mag_z * sinf(pitch) * cosf(roll));
         handle->euler_angles[IMU_ENGINE_YAW] = atan2f(y, x) * 180.0f / M_PI;
