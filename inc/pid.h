@@ -17,8 +17,9 @@ typedef struct
   float k_i;
   float k_d;
 
-  bool  clamping_enable;  /*!< enable to prevent integral windup using clamping technique */
-  float saturation_point; /*!< if clamping enabled, this value will be used as clamping saturation limit */
+  bool  clamping_enable;      /*!< enable to prevent integral windup using clamping technique */
+  float saturation_point_max; /*!< upper saturation limit */
+  float saturation_point_min; /*!< lower saturation limit */
 } pid_cfg_t;
 
 /**
@@ -26,10 +27,6 @@ typedef struct
  */
 typedef struct
 {
-  float k_p; /*!< proportional constant */
-  float k_i; /*!< integral constant */
-  float k_d; /*!< derivative constant */
-
   float previous_in;  /*!< keep track of previous input */
   float integral_err; /*!< keep track of error over time */
 

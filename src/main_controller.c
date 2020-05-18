@@ -54,7 +54,26 @@ static hysteresis_range_t hysteresis_ranges[HYSTERESIS_STATES] =
  * define PID controllers
  */
 static pid_ctrl_handle_t roll_pid;
+static const pid_cfg_t roll_pid_cfg =
+{
+  /* PID constants */
+  3.0f, 5.5f, 4.0f,
+
+  true, /* clamping enabled */
+  30.0f, /* upper saturation point */
+  -30.0f /* lower saturation point */
+};
+
 static pid_ctrl_handle_t pitch_pid;
+static const pid_cfg_t pitch_pid_cfg =
+{
+  /* PID constants */
+  3.0f, 5.5f, 4.0f,
+
+  true, /* clamping enabled */
+  30.0f, /* upper saturation point */
+  -30.0f /* lower saturation point */
+};
 // static pid_ctrl_handle_t yaw_pid;
 
 /**
@@ -81,7 +100,7 @@ static int32_t euler_angle_to_signal(float angle)
   // (x - input_start) / (input_end - input_start) * (output_end - output_start) + output_start
   float percent = (angle - -30.0f) / (30.0f - -30.0f) * (30.0f - -30.0f) + -30.0f;
 
-  return (int32_t)(percent * 100.0f * 100.0f);
+  return (int32_t)(percent * 100.0f);
 }
 
 /**
@@ -253,8 +272,8 @@ void mainControllerInit(main_ctrl_handle_t* handle)
   osalDbgCheck(handle != NULL);
 
   /* initialize our PID controllers */
-  pidInit(&roll_pid,  3.0f, 5.5f, 4.0f);
-  pidInit(&pitch_pid, 3.0f, 5.5f, 4.0f);
+  pidInit(&roll_pid,  &roll_pid_cfg);
+  pidInit(&pitch_pid, &pitch_pid_cfg);
   // pidInit(&yaw_pid,   1.0f, 0.0f, 1.0f);
 
   handle->state = MAIN_CTRL_STOPPED;

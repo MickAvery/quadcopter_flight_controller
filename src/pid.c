@@ -79,13 +79,24 @@ float pidCompute(pid_ctrl_handle_t* pid, float setpoint, float input)
 
   /* if clamping enabled, enforce saturation limit */
   if(pid->cfg->clamping_enable) {
-    clamped_ret = ret > pid->cfg->saturation_point ? pid->cfg->saturation_point : ret;
+    if(ret > pid->cfg->saturation_point_max)
+    {
+      clamped_ret = pid->cfg->saturation_point_max;
+    }
+    else if(ret < pid->cfg->saturation_point_min)
+    {
+      clamped_ret = pid->cfg->saturation_point_min;
+    }
+    else
+    {
+      clamped_ret = ret;
+    }
 
     /* check #1  */
     bool clamped = (clamped_ret != ret);
 
     /* check # 2 */
-    bool same_sign = (setpoint >= 0.0f) ^ (error < 0.0f);
+    bool same_sign = (error >= 0.0f) ^ (ret < 0.0f);
 
     pid->saturated = (clamped && same_sign) ? true : false;
   }
