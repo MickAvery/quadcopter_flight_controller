@@ -74,7 +74,14 @@ static const pid_cfg_t pitch_pid_cfg =
   30.0f, /* upper saturation point */
   -30.0f /* lower saturation point */
 };
+
 // static pid_ctrl_handle_t yaw_pid;
+
+/* TODO: maybe put these in a config file? */
+static float EULER_ANGLE_MAX = 30.0f;
+static float EULER_ANGLE_MIN = -30.0f;
+static float PWM_MAX = 30.0f;
+static float PWM_MIN = -30.0f;
 
 /**
  * \notapi
@@ -84,9 +91,8 @@ static float signal_to_euler_angle(uint32_t signal)
 {
   float percent = (float)signal / 100.0f / 100.0f;
 
-  /* TODO: magic numbers */
   /* normalize */
-  return percent * (30.0f - (-30.0f)) + (-30.0f);
+  return percent * (EULER_ANGLE_MAX - EULER_ANGLE_MIN) + EULER_ANGLE_MIN;
 }
 
 /**
@@ -95,21 +101,10 @@ static float signal_to_euler_angle(uint32_t signal)
  */
 static int32_t euler_angle_to_signal(float angle)
 {
-  /* TODO: magic numbers */
   /* normalize */
-  // (x - input_start) / (input_end - input_start) * (output_end - output_start) + output_start
-  float percent = (angle - -30.0f) / (30.0f - -30.0f) * (30.0f - -30.0f) + -30.0f;
+  float percent = (angle - EULER_ANGLE_MIN) / (EULER_ANGLE_MAX - EULER_ANGLE_MIN) * (PWM_MAX - PWM_MIN) + PWM_MIN;
 
   return (int32_t)(percent * 100.0f);
-}
-
-/**
- * \notapi
- * \brief Invert the signal coming from the transceiver
- */
-static inline uint32_t signal_invert(uint32_t signal)
-{
-  return 10000U - signal;
 }
 
 /**
