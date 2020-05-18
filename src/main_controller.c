@@ -74,13 +74,14 @@ static float signal_to_euler_angle(uint32_t signal)
  * \notapi
  * \brief Get desired PWM duty cycle fed to motors from euler angle
  */
-static uint32_t euler_angle_to_signal(float angle)
+static int32_t euler_angle_to_signal(float angle)
 {
   /* TODO: magic numbers */
   /* normalize */
-  float percent = (angle - (-30.0f)) / (30.0f - (-30.0f));
+  // (x - input_start) / (input_end - input_start) * (output_end - output_start) + output_start
+  float percent = (angle - -30.0f) / (30.0f - -30.0f) * (30.0f - -30.0f) + -30.0f;
 
-  return (uint32_t)(percent * 100.0f * 100.0f);
+  return (int32_t)(percent * 100.0f * 100.0f);
 }
 
 /**
@@ -177,7 +178,7 @@ THD_FUNCTION(mainControllerThread, arg)
       {
         /* determine setpoints */
         uint32_t roll_signal = channels[RADIO_TXRX_ROLL];
-        uint32_t pitch_signal = signal_invert(channels[RADIO_TXRX_PITCH]); /* invert just like in fps games */
+        uint32_t pitch_signal = channels[RADIO_TXRX_PITCH];
         // uint32_t yaw_signal = channels[RADIO_TXRX_YAW];
 
         float roll_setpoint = signal_to_euler_angle(roll_signal);
@@ -192,13 +193,16 @@ THD_FUNCTION(mainControllerThread, arg)
         float pitch_correct_angle = pidCompute(&pitch_pid, pitch_setpoint, euler_angles[IMU_ENGINE_PITCH]);
 
         /* convert correction to PWM duty cycles */
-        uint32_t roll_correct_pwm = euler_angle_to_signal(roll_correct_angle);
-        uint32_t pitch_correct_pwm = euler_angle_to_signal(pitch_correct_angle);
+        int32_t roll_correct_pwm = euler_angle_to_signal(roll_correct_angle);
+        int32_t pitch_correct_pwm = euler_angle_to_signal(pitch_correct_angle);
 
         chprintf((BaseSequentialStream*)&SD4,
+          "roll : %.2f\tpitch : %.2f\n"
           "roll setpoint : %.2f\tpitch setpoint : %.2f\n"
           "roll corr : %d\tpitch corr : %d\n\n",
-          roll_setpoint, pitch_setpoint, roll_correct_pwm, pitch_correct_pwm);
+          euler_angles[IMU_ENGINE_ROLL], euler_angles[IMU_ENGINE_PITCH],
+          roll_setpoint, pitch_setpoint,
+          roll_correct_pwm, pitch_correct_pwm);
 
         /**
          * https://robotics.stackexchange.com/questions/2964/quadcopter-pid-output?lq=1
