@@ -5,23 +5,22 @@
  * PID Controller API
  */
 
+#include <math.h>
+#include <stdbool.h>
 #include "pid.h"
 #include "hal.h"
 
 /**
  * \brief Initialize the PID controller
  * \param[in] pid - PID controller handle
- * \param[in] k_p - Proportional constant
- * \param[in] k_i - Integral constant
- * \param[in] k_d - Derivative constant
+ * \param[in] cfg - PID configurations
  */
-void pidInit(pid_ctrl_handle_t* pid, float k_p, float k_i, float k_d)
+void pidInit(pid_ctrl_handle_t* pid, const pid_cfg_t* cfg)
 {
   osalDbgCheck(pid != NULL);
+  osalDbgCheck(cfg != NULL);
 
-  pid->k_p = k_p;
-  pid->k_i = k_i;
-  pid->k_d = k_d;
+  pid->cfg = cfg;
 
   pid->previous_in = 0.0f;
   pid->integral_err = 0.0f;
@@ -45,6 +44,7 @@ float pidCompute(pid_ctrl_handle_t* pid, float setpoint, float input)
   osalDbgCheck(pid != NULL);
 
   float proportional, integral, derivative;
+  float ret, clamped_ret;
 
   /* get error */
   float error = setpoint - input;
@@ -54,23 +54,43 @@ float pidCompute(pid_ctrl_handle_t* pid, float setpoint, float input)
   pid->previous_in = input;
 
   /* update integral error */
-  pid->integral_err += error;
-  integral = pid->k_i * pid->integral_err;
+  if(pid->cfg->clamping_enable && pid->saturated) {
+    pid->integral_err += 0.0f;
+  } else {
+    pid->integral_err += error;
+  }
+
+  integral = pid->cfg->k_i * pid->integral_err;
 
   /**
    * design choice : proportional on measurement
    * http://brettbeauregard.com/blog/2017/06/introducing-proportional-on-measurement/
    */
-  proportional = pid->k_p * input_deriv;
+  proportional = pid->cfg->k_p * input_deriv;
 
   /**
    * design choice : derivative on measurement
    * https://controlguru.com/pid-control-and-derivative-on-measurement/
    * http://brettbeauregard.com/blog/2011/04/improving-the-beginner%e2%80%99s-pid-derivative-kick/
    */
-  derivative = pid->k_d * input_deriv;
+  derivative = pid->cfg->k_d * input_deriv;
 
-  return ( -proportional + integral - derivative );
+  ret = ( -proportional + integral - derivative );
+
+  /* if clamping enabled, enforce saturation limit */
+  if(pid->cfg->clamping_enable) {
+    clamped_ret = ret > pid->cfg->saturation_point ? pid->cfg->saturation_point : ret;
+
+    /* check #1  */
+    bool clamped = (clamped_ret != ret);
+
+    /* check # 2 */
+    bool same_sign = (setpoint >= 0.0f) ^ (error < 0.0f);
+
+    pid->saturated = (clamped && same_sign) ? true : false;
+  }
+
+  return clamped_ret;
 }
 
 /**

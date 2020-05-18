@@ -9,6 +9,19 @@
 #define PID_H
 
 /**
+ * PID configurations
+ */
+typedef struct
+{
+  float k_p;
+  float k_i;
+  float k_d;
+
+  bool  clamping_enable;  /*!< enable to prevent integral windup using clamping technique */
+  float saturation_point; /*!< if clamping enabled, this value will be used as clamping saturation limit */
+} pid_cfg_t;
+
+/**
  * PID controller handle
  */
 typedef struct
@@ -19,16 +32,18 @@ typedef struct
 
   float previous_in;  /*!< keep track of previous input */
   float integral_err; /*!< keep track of error over time */
+
+  bool saturated; /*!< if clamping enabled, this flag is set if integral is saturated */
+
+  const pid_cfg_t* cfg; /*!< PID configurations */
 } pid_ctrl_handle_t;
 
 /**
  * \brief Initialize the PID controller
  * \param[in] pid - PID controller handle
- * \param[in] k_p - Proportional constant
- * \param[in] k_i - Integral constant
- * \param[in] k_d - Derivative constant
+ * \param[in] cfg - PID configurations
  */
-void pidInit(pid_ctrl_handle_t* pid, float k_p, float k_i, float k_d);
+void pidInit(pid_ctrl_handle_t* pid, const pid_cfg_t* cfg);
 
 /**
  * Apply correction to an error value based on desired output
