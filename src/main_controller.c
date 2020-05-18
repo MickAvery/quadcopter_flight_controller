@@ -236,7 +236,6 @@ THD_FUNCTION(mainControllerThread, arg)
           }
 
           duty_cycles[i] = pwm;
-          // duty_cycles[i] = channels[RADIO_TXRX_THROTTLE];
         }
 
         /* perform hysteresis */
