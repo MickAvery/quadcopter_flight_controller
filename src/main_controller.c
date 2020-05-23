@@ -12,7 +12,6 @@
 #include "radio_tx_rx.h"
 #include "motor_driver.h"
 #include "pid.h"
-#include "chprintf.h"
 
 /**
  * Global main controller handle
@@ -44,11 +43,17 @@ typedef struct
 static hysteresis_range_t hysteresis_ranges[HYSTERESIS_STATES] =
 {
   /* MIN = 0%, MAX = 25% */
-  { 0U,    2500U }, /* grounded */
+  { 0U,    1500U }, /* grounded */
 
   /* MIN = 15%, MAX = 100% */
-  { 1500U, 10000U } /* liftoff */
+  { 1000U, 10000U } /* liftoff */
 };
+
+/* TODO: maybe put these in a config file? */
+#define EULER_ANGLE_MAX 30.0f
+#define EULER_ANGLE_MIN -30.0f
+static float PWM_MAX = 10.0f;
+static float PWM_MIN = -10.0f;
 
 /**
  * define PID controllers
@@ -60,8 +65,8 @@ static const pid_cfg_t roll_pid_cfg =
   3.0f, 5.5f, 4.0f,
 
   true, /* clamping enabled */
-  30.0f, /* upper saturation point */
-  -30.0f /* lower saturation point */
+  EULER_ANGLE_MAX, /* upper saturation point */
+  EULER_ANGLE_MIN /* lower saturation point */
 };
 
 static pid_ctrl_handle_t pitch_pid;
@@ -71,17 +76,11 @@ static const pid_cfg_t pitch_pid_cfg =
   3.0f, 5.5f, 4.0f,
 
   true, /* clamping enabled */
-  30.0f, /* upper saturation point */
-  -30.0f /* lower saturation point */
+  EULER_ANGLE_MAX, /* upper saturation point */
+  EULER_ANGLE_MIN /* lower saturation point */
 };
 
 // static pid_ctrl_handle_t yaw_pid;
-
-/* TODO: maybe put these in a config file? */
-static float EULER_ANGLE_MAX = 30.0f;
-static float EULER_ANGLE_MIN = -30.0f;
-static float PWM_MAX = 30.0f;
-static float PWM_MIN = -30.0f;
 
 /**
  * \notapi
@@ -89,7 +88,7 @@ static float PWM_MIN = -30.0f;
  */
 static float signal_to_euler_angle(uint32_t signal)
 {
-  float percent = (float)signal / 100.0f / 100.0f;
+  float percent = (float)signal / 10000.0f; // (signal / 100 / 100)
 
   /* normalize */
   return percent * (EULER_ANGLE_MAX - EULER_ANGLE_MIN) + EULER_ANGLE_MIN;
@@ -209,14 +208,6 @@ THD_FUNCTION(mainControllerThread, arg)
         /* convert correction to PWM duty cycles */
         int32_t roll_correct_pwm = euler_angle_to_signal(roll_correct_angle);
         int32_t pitch_correct_pwm = euler_angle_to_signal(pitch_correct_angle);
-
-        chprintf((BaseSequentialStream*)&SD4,
-          "roll : %.2f\tpitch : %.2f\n"
-          "roll setpoint : %.2f\tpitch setpoint : %.2f\n"
-          "roll corr : %d\tpitch corr : %d\n\n",
-          euler_angles[IMU_ENGINE_ROLL], euler_angles[IMU_ENGINE_PITCH],
-          roll_setpoint, pitch_setpoint,
-          roll_correct_pwm, pitch_correct_pwm);
 
         /**
          * https://robotics.stackexchange.com/questions/2964/quadcopter-pid-output?lq=1
