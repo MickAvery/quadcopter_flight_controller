@@ -120,7 +120,8 @@ THD_FUNCTION(imuEngineThread, arg)
         float pitch_acc = atan2f(readings.acc_y, readings.acc_z) * 180.0f / M_PI;
 
         /* apply complementary filter */
-        handle->euler_angles[IMU_ENGINE_ROLL] = (roll_gyro * 0.98f) + (roll_acc * 0.02f);
+        /* TODO: magic numbers */
+        handle->euler_angles[IMU_ENGINE_ROLL] = (roll_gyro * 0.55f) + (roll_acc * 0.45f);
         handle->euler_angles[IMU_ENGINE_PITCH] = (pitch_gyro * 0.98f) + (pitch_acc * 0.02f);
 
         /* convert angles to radians for yaw calculation */
