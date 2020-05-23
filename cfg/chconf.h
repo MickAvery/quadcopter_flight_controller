@@ -295,6 +295,16 @@
  */
 #define CH_CFG_USE_DYNAMIC                  TRUE
 
+/**
+ * @brief   Jobs Queues APIs.
+ * @details If enabled then the jobs queues APIs are included
+ *          in the kernel.
+ *
+ * @note    The default is @p TRUE.
+ */
+#if !defined(CH_CFG_USE_JOBS)
+#define CH_CFG_USE_JOBS                     TRUE
+#endif
 
 /**
  * @brief   Mailboxes APIs.

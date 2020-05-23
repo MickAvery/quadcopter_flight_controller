@@ -129,7 +129,8 @@ static ICUConfig icucfg =
   NULL,
   icuOverflowCb,
   ICU_CHANNEL_1,
-  0
+  0,
+  0xFFFFFFFFU
 };
 
 /**
