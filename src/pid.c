@@ -44,7 +44,8 @@ float pidCompute(pid_ctrl_handle_t* pid, float setpoint, float input)
   osalDbgCheck(pid != NULL);
 
   float proportional, integral, derivative;
-  float ret, clamped_ret;
+  float ret;
+  float clamped_ret = 0.0f;
 
   /* get error */
   float error = setpoint - input;
