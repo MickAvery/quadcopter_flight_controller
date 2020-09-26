@@ -107,6 +107,44 @@ static int32_t euler_angle_to_signal(float angle)
 }
 
 /**
+ * \notapi
+ * \brief
+ */
+static float throttle_to_thrust(uint32_t throttle_signal)
+{
+  /* TODO */
+  float ret = 0.0f;
+
+  return ret;
+}
+
+/**
+ * \notapi
+ * \brief Calculate the torques to be used to determine motor speed
+ */
+static void torques_calculation(float euler_angles[IMU_DATA_AXES], float ang_velocities[IMU_DATA_AXES], float torques_out[IMU_DATA_AXES])
+{
+  /* TODO */
+}
+
+/**
+ * \notapi
+ * \brief
+ */
+static void state_space_to_motor_speeds(float state_vals[4], float motor_speeds_out[MOTOR_DRIVER_MOTORS]) /* TODO: magic number */
+{
+  /* TODO */
+}
+
+/**
+ *
+ */
+static void motor_speeds_to_duty_cycle(float motor_speeds[MOTOR_DRIVER_MOTORS], uint32_t duty_cycles[MOTOR_DRIVER_MOTORS])
+{
+  /* TODO */
+}
+
+/**
  * Main Controller Thread.
  * It takes data from the IMU engine and Radio Transceiver modules
  * to determine how to drive the motors.
@@ -197,37 +235,24 @@ THD_FUNCTION(mainControllerThread, arg)
         float roll_setpoint = signal_to_euler_angle(roll_signal);
         float pitch_setpoint = signal_to_euler_angle(pitch_signal);
 
+        /* determine thrust */
+        float thrust = throttle_to_thrust(throttle_signal);
+
         /* read imu data */
         float euler_angles[IMU_DATA_AXES] = {0.0f};
+        float ang_velocities[IMU_DATA_AXES] = {0.0f};
         imuEngineGetData(&IMU_ENGINE, euler_angles, IMU_ENGINE_EULER);
+        imuEngineGetData(&IMU_ENGINE, ang_velocities, IMU_ENGINE_GYRO);
 
-        /* run PID control loop  */
-        float roll_correct_angle = pidCompute(&roll_pid, roll_setpoint, euler_angles[IMU_ENGINE_ROLL]);
-        float pitch_correct_angle = pidCompute(&pitch_pid, pitch_setpoint, euler_angles[IMU_ENGINE_PITCH]);
+        /* determine torque from linear acceleration and angular velocities */
+        float torques[IMU_DATA_AXES] = {0.0f};
+        torques_calculation(euler_angles, ang_velocities, torques);
 
-        /* convert correction to PWM duty cycles */
-        int32_t roll_correct_pwm = euler_angle_to_signal(roll_correct_angle);
-        int32_t pitch_correct_pwm = euler_angle_to_signal(pitch_correct_angle);
-
-        /**
-         * https://robotics.stackexchange.com/questions/2964/quadcopter-pid-output?lq=1
-         */
-        for(size_t i = 0 ; i < MOTOR_DRIVER_MOTORS ; i++) {
-          uint32_t pwm = 0U;
-          uint32_t throttle = channels[RADIO_TXRX_THROTTLE];
-
-          if(i == MOTOR_DRIVER_NW) {
-            pwm = throttle + (pitch_correct_pwm / 2) - (roll_correct_pwm / 2);
-          } else if(i == MOTOR_DRIVER_NE) {
-            pwm = throttle + (pitch_correct_pwm / 2) + (roll_correct_pwm / 2);
-          } else if(i == MOTOR_DRIVER_SE) {
-            pwm = throttle - (pitch_correct_pwm / 2) + (roll_correct_pwm / 2);
-          } else if(i == MOTOR_DRIVER_SW) {
-            pwm = throttle - (pitch_correct_pwm / 2) - (roll_correct_pwm / 2);
-          }
-
-          duty_cycles[i] = pwm;
-        }
+        /* run PD control loop  */
+        float motor_speeds[MOTOR_DRIVER_MOTORS] = {0.0f};
+        float state_space_representation[4U] = {thrust, torques[0], torques[1], torques[2]}; /* TODO: magic number */
+        state_space_to_motor_speeds(state_space_representation, motor_speeds);
+        motor_speeds_to_duty_cycle(motor_speeds, duty_cycles);
 
         /* perform hysteresis */
         if(throttle_signal < hysteresis_ranges[FLYING].min) {
