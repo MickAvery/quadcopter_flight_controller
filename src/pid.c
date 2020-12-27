@@ -11,6 +11,23 @@
 #include "hal.h"
 
 /**
+ * @brief Set constraint on input, saturate if below or above minimum or maximum respectively
+ * 
+ * @param in  - Input to constrain
+ * @param min - Minimum
+ * @param max - Maximum
+ * @return float
+ */
+static float constrainf(float in, float min, float max)
+{
+  if(in < min)
+    return min;
+  if(in > max)
+    return max;
+  return in;
+}
+
+/**
  * \brief Initialize the PID controller
  * \param[in] pid - PID controller handle
  * \param[in] cfg - PID configurations
@@ -22,6 +39,7 @@ void pidInit(pid_ctrl_handle_t* pid, const pid_cfg_t* cfg)
 
   pid->cfg = cfg;
 
+  pid->previous_sp = 0.0f;
   pid->previous_in = 0.0f;
   pid->integral_err = 0.0f;
 }
@@ -43,66 +61,41 @@ float pidCompute(pid_ctrl_handle_t* pid, float setpoint, float input)
 {
   osalDbgCheck(pid != NULL);
 
-  float proportional, integral, derivative;
-  float ret;
-  float clamped_ret = 0.0f;
-
-  /* get error */
   float error = setpoint - input;
 
-  /* get derivative of input */
-  float input_deriv = input - pid->previous_in;
+  /*******************************
+   * P
+   *******************************/
+  pid->P = pid->cfg->Kp * error;
+
+  /*******************************
+   * I
+   *******************************/
+  pid->I = pid->I + (pid->cfg->Ki * pid->cfg->dT * error);
+  pid->I = constrainf(pid->I, -pid->cfg->iterm_max, pid->cfg->iterm_max); /* saturate, integral windup avoidance */
+
+  /*******************************
+   * D
+   *******************************/
+  float pid_frequency = 1.0f / pid->cfg->dT;
+  float delta = -(input - pid->previous_in) * pid_frequency;
+  pid->D = delta * pid->cfg->Kd; /* TODO might need throttle PID attenuation here */
+
   pid->previous_in = input;
 
-  /* update integral error */
-  if(pid->cfg->clamping_enable && pid->saturated) {
-    pid->integral_err += 0.0f;
-  } else {
-    pid->integral_err += error;
-  }
+  /*******************************
+   * F : TODO
+   *******************************/
+  // float setpoint_delta = setpoint - pid->previous_sp;
+  // pid->previous_sp = setpoint;
+  pid->F = 0.0f;
 
-  integral = pid->cfg->k_i * pid->integral_err;
+  /*******************************
+   * Sum
+   *******************************/
+  pid->sum = pid->P + pid->I + pid->D + pid->F;
 
-  /**
-   * design choice : proportional on measurement
-   * http://brettbeauregard.com/blog/2017/06/introducing-proportional-on-measurement/
-   */
-  proportional = pid->cfg->k_p * input_deriv;
-
-  /**
-   * design choice : derivative on measurement
-   * https://controlguru.com/pid-control-and-derivative-on-measurement/
-   * http://brettbeauregard.com/blog/2011/04/improving-the-beginner%e2%80%99s-pid-derivative-kick/
-   */
-  derivative = pid->cfg->k_d * input_deriv;
-
-  ret = ( -proportional + integral - derivative );
-
-  /* if clamping enabled, enforce saturation limit */
-  if(pid->cfg->clamping_enable) {
-    if(ret > pid->cfg->saturation_point_max)
-    {
-      clamped_ret = pid->cfg->saturation_point_max;
-    }
-    else if(ret < pid->cfg->saturation_point_min)
-    {
-      clamped_ret = pid->cfg->saturation_point_min;
-    }
-    else
-    {
-      clamped_ret = ret;
-    }
-
-    /* check #1  */
-    bool clamped = (clamped_ret != ret);
-
-    /* check # 2 */
-    bool same_sign = (error >= 0.0f) ^ (ret < 0.0f);
-
-    pid->saturated = (clamped && same_sign) ? true : false;
-  }
-
-  return clamped_ret;
+  return pid->sum;
 }
 
 /**

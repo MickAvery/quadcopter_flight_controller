@@ -7,6 +7,7 @@
  * and sets drives the motors accordingly.
  */
 
+#include <math.h>
 #include "main_controller.h"
 #include "imu_engine.h"
 #include "radio_tx_rx.h"
@@ -51,10 +52,8 @@ static hysteresis_range_t hysteresis_ranges[HYSTERESIS_STATES] =
 };
 
 /* TODO: maybe put these in a config file? */
-#define EULER_ANGLE_MAX 30.0f
-#define EULER_ANGLE_MIN -30.0f
-static float PWM_MAX = 10.0f;
-static float PWM_MIN = -10.0f;
+#define BODY_TILT_MAX 45.0f
+#define PID_ITERM_MAX 400.0f
 
 /**
  * define PID controllers
@@ -63,36 +62,96 @@ static pid_ctrl_handle_t roll_pid;
 static const pid_cfg_t roll_pid_cfg =
 {
   /* PID constants */
-  3.0f, 5.5f, 4.0f,
+  3.0f, 5.5f, 4.0f, 0.0f,
 
-  true, /* clamping enabled */
-  EULER_ANGLE_MAX, /* upper saturation point */
-  EULER_ANGLE_MIN /* lower saturation point */
+  10e-3f,
+
+  PID_ITERM_MAX /* I-term max for saturation */
 };
 
 static pid_ctrl_handle_t pitch_pid;
 static const pid_cfg_t pitch_pid_cfg =
 {
   /* PID constants */
-  3.0f, 5.5f, 4.0f,
+  3.0f, 5.5f, 4.0f, 0.0f,
 
-  true, /* clamping enabled */
-  EULER_ANGLE_MAX, /* upper saturation point */
-  EULER_ANGLE_MIN /* lower saturation point */
+  10e-3f,
+
+  PID_ITERM_MAX /* I-term max for saturation */
 };
 
-// static pid_ctrl_handle_t yaw_pid;
+static pid_ctrl_handle_t yaw_pid;
+static const pid_cfg_t yaw_pid_cfg =
+{
+  /* PID constants */
+  3.0f, 5.5f, 4.0f, 0.0f,
+
+  10e-3f,
+
+  PID_ITERM_MAX /* I-term max for saturation */
+};
 
 /**
  * \notapi
  * \brief Get desired euler angle setpoint based on signal from transceiver
  */
-static float signal_to_euler_angle(uint32_t signal)
-{
-  float percent = (float)signal / 10000.0f; // (signal / 100 / 100)
+// static float signal_to_euler_angle(uint32_t signal)
+// {
+//   float percent = (float)signal / 10000.0f; // (signal / 100 / 100)
 
-  /* normalize */
-  return percent * (EULER_ANGLE_MAX - EULER_ANGLE_MIN) + EULER_ANGLE_MIN;
+//   /* normalize */
+//   return percent * (EULER_ANGLE_MAX - EULER_ANGLE_MIN) + EULER_ANGLE_MIN;
+// }
+
+// TODO: Put into library!
+/**
+ * @brief Set constraint on input, saturate if below or above minimum or maximum respectively
+ * 
+ * @param in  - Input to constrain
+ * @param min - Minimum
+ * @param max - Maximum
+ * @return float
+ */
+static float constrainf(float in, float min, float max)
+{
+  if(in < min)
+    return min;
+  if(in > max)
+    return max;
+  return in;
+}
+
+#define RC_EXPO             0.0f
+#define RC_RATE             0.80f
+#define SUPER_RATE          0.65f
+#define RC_RATE_INCREMENTAL 14.54f
+#define power3(x) (x*x*x)
+
+/**
+ * @brief 
+ * 
+ * @param rc_setpoint 
+ * @return float 
+ */
+static float calculate_setpoint_rate(float rc_setpoint)
+{
+  float rc_sp_abs = fabs(rc_setpoint);
+
+  /* RC Expo */
+  rc_setpoint = ( rc_setpoint * power3(rc_sp_abs) * RC_EXPO ) + ( rc_setpoint * (1 - RC_EXPO) );
+
+  /* RC Rates */
+  float rc_rate = RC_RATE;
+  if (rc_rate > 2.0f)
+    rc_rate += RC_RATE_INCREMENTAL * (rc_rate - 2.0f);
+
+  float angle_rate = 200.0f * rc_rate * rc_setpoint;
+
+  /* Super Rates */
+  float rc_superfactor = 1.0f / (constrainf(1.0f - (rc_sp_abs * SUPER_RATE), 0.01f, 1.00f));
+  angle_rate *= rc_superfactor;
+
+  return angle_rate;
 }
 
 /**
@@ -124,21 +183,20 @@ THD_FUNCTION(mainControllerThread, arg)
    * (or at least less than the throttle threshold when multirotor is grounded)
    */
 
-  int32_t throttle = 0;
-  int32_t roll_sp  = 0;
-  int32_t pitch_sp = 0;
-  int32_t yaw_sp   = 0;
+  int32_t throttle_pcnt = 0;
+  int32_t throttle_rc_sp = 0;
+  float yaw_rc_sp = 0.0f;
 
   do {
 
     uint32_t channels[MOTOR_DRIVER_MOTORS] = {0U};
     radioTxRxReadInputs(&RADIO_TXRX, channels);
 
-    throttle = (int32_t)channels[RADIO_TXRX_THROTTLE];
+    throttle_pcnt = (int32_t)channels[RADIO_TXRX_THROTTLE];
 
     chThdSleepMilliseconds(RADIO_PPM_LENGTH_MS);
 
-  } while(throttle >= hysteresis_ranges[flight_state].max);
+  } while(throttle_pcnt >= hysteresis_ranges[flight_state].max);
 
   /**
    * Main logic
@@ -151,12 +209,9 @@ THD_FUNCTION(mainControllerThread, arg)
 
     radioTxRxReadInputs(&RADIO_TXRX, channels);
 
-    throttle = RADIO_TXRX.setpoints[RADIO_TXRX_THROTTLE];
-    roll_sp = RADIO_TXRX.setpoints[RADIO_TXRX_ROLL];
-    pitch_sp = RADIO_TXRX.setpoints[RADIO_TXRX_PITCH];
-    yaw_sp = RADIO_TXRX.setpoints[RADIO_TXRX_YAW];
-
-    // chprintf((BaseSequentialStream*)&SD4, "throttle = %d\troll = %d\tpitch = %d\tyaw = %d\n", throttle, roll_sp, pitch_sp, yaw_sp);
+    throttle_pcnt = RADIO_TXRX.channels[RADIO_TXRX_THROTTLE];
+    throttle_rc_sp = RADIO_TXRX.setpoints[RADIO_TXRX_THROTTLE];
+    yaw_rc_sp = RADIO_TXRX.rc_deflections[RADIO_TXRX_YAW];
 
     /**
      * Flight state machine
@@ -174,10 +229,10 @@ THD_FUNCTION(mainControllerThread, arg)
         /* reset PID controllers */
         pidReset(&roll_pid);
         pidReset(&pitch_pid);
-        // pidReset(&yaw_pid);
+        pidReset(&yaw_pid);
 
         /* perform hysteresis */
-        if(throttle > hysteresis_ranges[GROUNDED].max) {
+        if(throttle_pcnt > hysteresis_ranges[GROUNDED].max) {
           flight_state = FLYING;
         }
 
@@ -186,22 +241,40 @@ THD_FUNCTION(mainControllerThread, arg)
 
       case FLYING:
       {
-        /* determine setpoints */
-        uint32_t roll_signal = channels[RADIO_TXRX_ROLL];
-        uint32_t pitch_signal = channels[RADIO_TXRX_PITCH];
-        // uint32_t yaw_signal = channels[RADIO_TXRX_YAW];
-
-        /* determine thrust */
-        float thrust = 0.0f; /* TODO */
-
         /* read imu data */
-        float euler_angles[IMU_DATA_AXES] = {0.0f};
-        float ang_velocities[IMU_DATA_AXES] = {0.0f};
-        imuEngineGetData(&IMU_ENGINE, euler_angles, IMU_ENGINE_EULER);
-        imuEngineGetData(&IMU_ENGINE, ang_velocities, IMU_ENGINE_GYRO);
+        float attitude[IMU_DATA_AXES] = {0.0f};
+        float gyro[IMU_DATA_AXES] = {0.0f};
+        imuEngineGetData(&IMU_ENGINE, attitude, IMU_ENGINE_EULER);
+        imuEngineGetData(&IMU_ENGINE, gyro, IMU_ENGINE_GYRO);
+
+        /* get setpoints from RC input */
+        float target_roll_angle = -1.0f * RADIO_TXRX.rc_deflections[RADIO_TXRX_ROLL] * BODY_TILT_MAX;
+        float target_pitch_angle = -1.0f * RADIO_TXRX.rc_deflections[RADIO_TXRX_PITCH] * BODY_TILT_MAX;
+        float target_yaw_rate = -1.0f * calculate_setpoint_rate(yaw_rc_sp);
+
+        /* get setpoints as degree delta (target_angle - actual_euler_angle) */
+        target_roll_angle = target_roll_angle - attitude[RADIO_TXRX_ROLL];
+        target_pitch_angle = target_pitch_angle - attitude[RADIO_TXRX_PITCH];
+
+        /* multiple setpoint angles by "Level Strength" */
+        target_roll_angle  *= 5.0f; /* TODO: magic numbers */
+        target_pitch_angle *= 5.0f; /* TODO: magic numbers */
+
+        /* run iteration of PID loop */
+        float roll  = pidCompute(&roll_pid, target_roll_angle, gyro[IMU_ENGINE_ROLL]/1000.0f);
+        float pitch = pidCompute(&pitch_pid, target_pitch_angle, gyro[IMU_ENGINE_PITCH]/1000.0f);
+        float yaw   = pidCompute(&yaw_pid, target_yaw_rate, gyro[IMU_ENGINE_YAW]/1000.0f);
+        chprintf(
+          (BaseSequentialStream*)&SD4,
+          "throttle = %d\troll = %f\tpitch = %f\tyaw = %f\n", throttle_rc_sp, roll, pitch, yaw);
+
+        for(size_t i = 0 ; i < MOTOR_DRIVER_MOTORS ; i++)
+        {
+
+        }
 
         /* perform hysteresis */
-        if(throttle < hysteresis_ranges[FLYING].min) {
+        if(throttle_pcnt < hysteresis_ranges[FLYING].min) {
           flight_state = GROUNDED;
         }
 
@@ -230,7 +303,7 @@ void mainControllerInit(main_ctrl_handle_t* handle)
   /* initialize our PID controllers */
   pidInit(&roll_pid,  &roll_pid_cfg);
   pidInit(&pitch_pid, &pitch_pid_cfg);
-  // pidInit(&yaw_pid,   1.0f, 0.0f, 1.0f);
+  pidInit(&yaw_pid,   &yaw_pid_cfg);
 
   handle->state = MAIN_CTRL_STOPPED;
 }

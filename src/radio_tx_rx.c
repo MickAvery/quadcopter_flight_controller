@@ -144,6 +144,19 @@ static void icuWidthCb(ICUDriver *icup)
         if((radio_tx_rx_chan_def_t)chan < RADIO_TXRX_SETPOINTS)
           RADIO_TXRX.setpoints[chan] = get_rc_setpoint(percent, chan);
 
+        /* get setpoint deflections */
+        switch(chan)
+        {
+          case RADIO_TXRX_ROLL:
+          case RADIO_TXRX_PITCH:
+          case RADIO_TXRX_YAW:
+            RADIO_TXRX.rc_deflections[chan] = (float)RADIO_TXRX.setpoints[chan] / (float)RC_RoPiYa_SETPOINT_MAX;
+            break;
+
+          default:
+            break;
+        }
+
         RADIO_TXRX.active_channel++;
 
       }
