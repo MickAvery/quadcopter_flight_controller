@@ -40,6 +40,13 @@ static uint32_t PULSE_WIDTH_MIN = 60;
  */
 static uint32_t PULSE_WIDTH_MAX = 160;
 
+#define RC_THROTTLE_SETPOINT_MIN  1000
+#define RC_THROTTLE_SETPOINT_MAX  2000
+#define RC_RoPiYa_SETPOINT_MIN   -500
+#define RC_RoPiYa_SETPOINT_MAX    500
+#define RC_SIGNAL_MIN             0
+#define RC_SIGNAL_MAX             10000
+
 /**
  * \notapi
  * Convert the pulse width into a percent value knowing what the minimum and maximum widths are.
@@ -56,6 +63,39 @@ static uint32_t pulse_width_to_percent(icucnt_t width)
   }
 
   return ((width - PULSE_WIDTH_MIN) * 10000U) / (PULSE_WIDTH_MAX - PULSE_WIDTH_MIN);
+}
+
+/**
+ * \notapi
+ * Convert RC channel signal to setpoint
+ * Throttle setpoint interval is [1000, 2000]
+ * Roll, Pitch, Yaw setpoint interval is [-500, 500]
+ * 
+ * \param rc_signal Interval [0, 100]
+ * \param rc_channel 
+ * \return int32_t channel setpoint
+ */
+static int32_t get_rc_setpoint(uint32_t rc_signal, radio_tx_rx_chan_def_t rc_channel)
+{
+  int32_t ret = 0;
+
+  switch(rc_channel)
+  {
+    case RADIO_TXRX_THROTTLE:
+      ret = rc_signal * (RC_THROTTLE_SETPOINT_MAX - RC_THROTTLE_SETPOINT_MIN) / 10000 + RC_THROTTLE_SETPOINT_MIN;
+      break;
+
+    case RADIO_TXRX_ROLL:
+    case RADIO_TXRX_PITCH:
+    case RADIO_TXRX_YAW:
+      ret = rc_signal * (RC_RoPiYa_SETPOINT_MAX - RC_RoPiYa_SETPOINT_MIN) / 10000 + RC_RoPiYa_SETPOINT_MIN;
+      break;
+
+    default:
+      break;
+  }
+
+  return ret;
 }
 
 /**
@@ -99,6 +139,11 @@ static void icuWidthCb(ICUDriver *icup)
         uint32_t percent = pulse_width_to_percent(pulse_width);
 
         RADIO_TXRX.channels[chan] = percent;
+
+        /* get setpoints for throttle, roll, pitch, yaw */
+        if((radio_tx_rx_chan_def_t)chan < RADIO_TXRX_SETPOINTS)
+          RADIO_TXRX.setpoints[chan] = get_rc_setpoint(percent, chan);
+
         RADIO_TXRX.active_channel++;
 
       }

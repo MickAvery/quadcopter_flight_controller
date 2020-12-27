@@ -12,6 +12,7 @@
 #include "radio_tx_rx.h"
 #include "motor_driver.h"
 #include "pid.h"
+#include "chprintf.h"
 
 /**
  * Global main controller handle
@@ -33,8 +34,8 @@ typedef enum
  */
 typedef struct
 {
-  uint32_t min;
-  uint32_t max;
+  int32_t min;
+  int32_t max;
 } hysteresis_range_t;
 
 /**
@@ -95,56 +96,6 @@ static float signal_to_euler_angle(uint32_t signal)
 }
 
 /**
- * \notapi
- * \brief Get desired PWM duty cycle fed to motors from euler angle
- */
-static int32_t euler_angle_to_signal(float angle)
-{
-  /* normalize */
-  float percent = (angle - EULER_ANGLE_MIN) / (EULER_ANGLE_MAX - EULER_ANGLE_MIN) * (PWM_MAX - PWM_MIN) + PWM_MIN;
-
-  return (int32_t)(percent * 100.0f);
-}
-
-/**
- * \notapi
- * \brief
- */
-static float throttle_to_thrust(uint32_t throttle_signal)
-{
-  /* TODO */
-  float ret = 0.0f;
-
-  return ret;
-}
-
-/**
- * \notapi
- * \brief Calculate the torques to be used to determine motor speed
- */
-static void torques_calculation(float euler_angles[IMU_DATA_AXES], float ang_velocities[IMU_DATA_AXES], float torques_out[IMU_DATA_AXES])
-{
-  /* TODO */
-}
-
-/**
- * \notapi
- * \brief
- */
-static void state_space_to_motor_speeds(float state_vals[4], float motor_speeds_out[MOTOR_DRIVER_MOTORS]) /* TODO: magic number */
-{
-  /* TODO */
-}
-
-/**
- *
- */
-static void motor_speeds_to_duty_cycle(float motor_speeds[MOTOR_DRIVER_MOTORS], uint32_t duty_cycles[MOTOR_DRIVER_MOTORS])
-{
-  /* TODO */
-}
-
-/**
  * Main Controller Thread.
  * It takes data from the IMU engine and Radio Transceiver modules
  * to determine how to drive the motors.
@@ -173,18 +124,21 @@ THD_FUNCTION(mainControllerThread, arg)
    * (or at least less than the throttle threshold when multirotor is grounded)
    */
 
-  uint32_t throttle_signal = 0U;
+  int32_t throttle = 0;
+  int32_t roll_sp  = 0;
+  int32_t pitch_sp = 0;
+  int32_t yaw_sp   = 0;
 
   do {
 
     uint32_t channels[MOTOR_DRIVER_MOTORS] = {0U};
     radioTxRxReadInputs(&RADIO_TXRX, channels);
 
-    throttle_signal = channels[RADIO_TXRX_THROTTLE];
+    throttle = (int32_t)channels[RADIO_TXRX_THROTTLE];
 
     chThdSleepMilliseconds(RADIO_PPM_LENGTH_MS);
 
-  } while(throttle_signal >= hysteresis_ranges[flight_state].max);
+  } while(throttle >= hysteresis_ranges[flight_state].max);
 
   /**
    * Main logic
@@ -197,7 +151,12 @@ THD_FUNCTION(mainControllerThread, arg)
 
     radioTxRxReadInputs(&RADIO_TXRX, channels);
 
-    throttle_signal = channels[RADIO_TXRX_THROTTLE];
+    throttle = RADIO_TXRX.setpoints[RADIO_TXRX_THROTTLE];
+    roll_sp = RADIO_TXRX.setpoints[RADIO_TXRX_ROLL];
+    pitch_sp = RADIO_TXRX.setpoints[RADIO_TXRX_PITCH];
+    yaw_sp = RADIO_TXRX.setpoints[RADIO_TXRX_YAW];
+
+    // chprintf((BaseSequentialStream*)&SD4, "throttle = %d\troll = %d\tpitch = %d\tyaw = %d\n", throttle, roll_sp, pitch_sp, yaw_sp);
 
     /**
      * Flight state machine
@@ -218,7 +177,7 @@ THD_FUNCTION(mainControllerThread, arg)
         // pidReset(&yaw_pid);
 
         /* perform hysteresis */
-        if(throttle_signal > hysteresis_ranges[GROUNDED].max) {
+        if(throttle > hysteresis_ranges[GROUNDED].max) {
           flight_state = FLYING;
         }
 
@@ -232,11 +191,8 @@ THD_FUNCTION(mainControllerThread, arg)
         uint32_t pitch_signal = channels[RADIO_TXRX_PITCH];
         // uint32_t yaw_signal = channels[RADIO_TXRX_YAW];
 
-        float roll_setpoint = signal_to_euler_angle(roll_signal);
-        float pitch_setpoint = signal_to_euler_angle(pitch_signal);
-
         /* determine thrust */
-        float thrust = throttle_to_thrust(throttle_signal);
+        float thrust = 0.0f; /* TODO */
 
         /* read imu data */
         float euler_angles[IMU_DATA_AXES] = {0.0f};
@@ -244,18 +200,8 @@ THD_FUNCTION(mainControllerThread, arg)
         imuEngineGetData(&IMU_ENGINE, euler_angles, IMU_ENGINE_EULER);
         imuEngineGetData(&IMU_ENGINE, ang_velocities, IMU_ENGINE_GYRO);
 
-        /* determine torque from linear acceleration and angular velocities */
-        float torques[IMU_DATA_AXES] = {0.0f};
-        torques_calculation(euler_angles, ang_velocities, torques);
-
-        /* run PD control loop  */
-        float motor_speeds[MOTOR_DRIVER_MOTORS] = {0.0f};
-        float state_space_representation[4U] = {thrust, torques[0], torques[1], torques[2]}; /* TODO: magic number */
-        state_space_to_motor_speeds(state_space_representation, motor_speeds);
-        motor_speeds_to_duty_cycle(motor_speeds, duty_cycles);
-
         /* perform hysteresis */
-        if(throttle_signal < hysteresis_ranges[FLYING].min) {
+        if(throttle < hysteresis_ranges[FLYING].min) {
           flight_state = GROUNDED;
         }
 
