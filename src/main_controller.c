@@ -91,21 +91,9 @@ static const pid_cfg_t yaw_pid_cfg =
   PID_ITERM_MAX /* I-term max for saturation */
 };
 
-/**
- * \notapi
- * \brief Get desired euler angle setpoint based on signal from transceiver
- */
-// static float signal_to_euler_angle(uint32_t signal)
-// {
-//   float percent = (float)signal / 10000.0f; // (signal / 100 / 100)
-
-//   /* normalize */
-//   return percent * (EULER_ANGLE_MAX - EULER_ANGLE_MIN) + EULER_ANGLE_MIN;
-// }
-
 // TODO: Put into library!
 /**
- * @brief Set constraint on input, saturate if below or above minimum or maximum respectively
+ * @brief Set constraint on floating-point input, saturate if below or above minimum or maximum respectively
  * 
  * @param in  - Input to constrain
  * @param min - Minimum
@@ -113,6 +101,24 @@ static const pid_cfg_t yaw_pid_cfg =
  * @return float
  */
 static float constrainf(float in, float min, float max)
+{
+  if(in < min)
+    return min;
+  if(in > max)
+    return max;
+  return in;
+}
+
+// TODO: Put into library!
+/**
+ * @brief Set constraint on integer input, saturate if below or above minimum or maximum respectively
+ * 
+ * @param in 
+ * @param min 
+ * @param max 
+ * @return int32_t 
+ */
+static int32_t constrain(int32_t in, int32_t min, int32_t max)
 {
   if(in < min)
     return min;
@@ -186,7 +192,6 @@ THD_FUNCTION(mainControllerThread, arg)
 
   int32_t throttle_pcnt = 0;
   float throttle_pcnt_f = 0.0f;
-  int32_t throttle_rc_sp = 0;
   float yaw_rc_sp = 0.0f;
 
   do {
@@ -213,7 +218,6 @@ THD_FUNCTION(mainControllerThread, arg)
 
     throttle_pcnt = RADIO_TXRX.channels[RADIO_TXRX_THROTTLE];
     throttle_pcnt_f = throttle_pcnt / 10000.0f;
-    throttle_rc_sp = RADIO_TXRX.setpoints[RADIO_TXRX_THROTTLE];
     yaw_rc_sp = RADIO_TXRX.rc_deflections[RADIO_TXRX_YAW];
 
     /**
@@ -317,21 +321,24 @@ THD_FUNCTION(mainControllerThread, arg)
          * applyMixToMotors() in betaflight */
         for(size_t i = 0 ; i < MOTOR_DRIVER_MOTORS ; i++)
         {
-          float motor_output = motor_cycles[i] + throttle_pcnt_f;
+          float motor_output_f = motor_cycles[i] + throttle_pcnt_f;
 
-          /* TODO: magic numbers! */
+          /* convert motor output to PWM duty cycle */
+          int32_t motor_output = (int32_t)(100.0f * motor_output_f);
 
-          motor_output = 1000.0f + 1000.0f * motor_output; // motorOutputMin + motorOutputRange * motorOutput;
+          /* constrain output to interval [0%, 100%] */
+          motor_output = constrain(motor_output, 0, 100);
 
-          motor_output = constrainf(motor_output, 1000.0f, 2000.0f);
+          /* set duty cycle */
+          duty_cycles[i] = (uint32_t)motor_output;
 
-          chprintf(
-            (BaseSequentialStream*)&SD4,
-            "%d = %0.2f\t", i, motor_output);
+          // chprintf(
+          //   (BaseSequentialStream*)&SD4,
+          //   "%d = %d\t", i, motor_output);
         }
-        chprintf(
-          (BaseSequentialStream*)&SD4,
-          "range = %0.2f\n", motor_range);
+        // chprintf(
+        //   (BaseSequentialStream*)&SD4,
+        //   "range = %0.2f\n", motor_range);
 
         /* perform hysteresis */
         if(throttle_pcnt < hysteresis_ranges[FLYING].min)
