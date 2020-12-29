@@ -10,6 +10,7 @@
 #include "ch.h"
 #include "osal.h"
 #include "lsm6dsl.h"
+#include "lsm6dsl_reg.h"
 
 /**
  * \brief Accelerometer sensitivities corresponding to
@@ -43,12 +44,35 @@ static uint8_t lsm6dsl_addr = 0b01101010;
  * Register addresses
  *****************************************/
 
-static uint8_t ctrl1_xl_addr      = 0x10U;
-static uint8_t ctrl2_g_addr       = 0x11U;
 // static uint8_t ctrl10_c_addr      = 0x19U;
 static uint8_t status_addr        = 0x1EU;
 static uint8_t data_start_addr    = 0x22U;
 static uint8_t master_config_addr = 0x1AU;
+
+/*****************************************
+ * Helper functions
+ *****************************************/
+
+/**
+ * \notapi
+ * \brief Read n-bytes starting from register address
+ * \return msg_t OS return message
+ */
+static inline msg_t reg_read(lsm6dsl_handle_t* handle, uint8_t regaddr, uint8_t* buf, size_t buflen)
+{
+  return i2cMasterTransmitTimeout(handle->cfg->i2c_drv, LSM6DSL_I2C_SLAVEADDR, &regaddr, 1U, buf, buflen, timeout);
+}
+
+/**
+ * \notapi
+ * \brief Write one byte to register address
+ * \return msg_t OS return message
+ */
+static msg_t reg_write(lsm6dsl_handle_t* handle, uint8_t regaddr, uint8_t tx)
+{
+  uint8_t txbuf[2] = { regaddr, tx };
+  return i2cMasterTransmitTimeout(handle->cfg->i2c_drv, LSM6DSL_I2C_SLAVEADDR, txbuf, 2U, NULL, 0, timeout);
+}
 
 /*****************************************
  * API
@@ -92,9 +116,9 @@ lsm6dsl_status_t lsm6dslStart(lsm6dsl_handle_t* handle, const lsm6dsl_config_t* 
 
   i2cAcquireBus(i2c);
 
-  if(i2cMasterTransmitTimeout(i2c, lsm6dsl_addr, &ctrl1_xl_addr, 1U, &ctrl1_xl, 1U, timeout) != MSG_OK) {
+  if(reg_read(handle, CTRL1_XL_ADDR, &ctrl1_xl, 1U) != MSG_OK) {
     /* I2C read failed */
-  } else if(i2cMasterTransmitTimeout(i2c, lsm6dsl_addr, &ctrl2_g_addr, 1U, &ctrl2_g, 1U, timeout) != MSG_OK) {
+  } else if(reg_read(handle, CTRL2_G_ADDR, &ctrl2_g, 1U) != MSG_OK) {
     /* I2C read failed */
   } else {
 
@@ -106,12 +130,9 @@ lsm6dsl_status_t lsm6dslStart(lsm6dsl_handle_t* handle, const lsm6dsl_config_t* 
     ctrl2_g |= (handle->cfg->odr << 4);
     ctrl2_g |= (handle->cfg->gyro_fs << 2);
 
-    uint8_t xl_rx[2] = {ctrl1_xl_addr, ctrl1_xl};
-    uint8_t g_rx[2] = {ctrl2_g_addr, ctrl2_g};
-
-    if(i2cMasterTransmitTimeout(i2c, lsm6dsl_addr, xl_rx, 2, NULL, 0, timeout) != MSG_OK) {
+    if(reg_write(handle, CTRL1_XL_ADDR, ctrl1_xl) != MSG_OK) {
       /* I2C write failed */
-    } else if(i2cMasterTransmitTimeout(i2c, lsm6dsl_addr, g_rx, 2, NULL, 0, timeout) != MSG_OK) {
+    } else if(reg_write(handle, CTRL2_G_ADDR, ctrl2_g) != MSG_OK) {
       /* I2C write failed */
     } else {
       handle->accel_sensitivity = accel_sensitivities_list[handle->cfg->accel_fs];

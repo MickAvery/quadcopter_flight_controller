@@ -244,7 +244,7 @@ install:
 	cd -
 	@echo "Exiting CppUTest directory..."
 
-check: CPPFLAGS=-std=c++11 -O0 -ggdb -fpermissive -D__ARM_ARCH_7M__=1 $(patsubst %,-I%,$(INCDIR) $(CPPUTEST)/include .)
+check: CPPFLAGS=-std=c++11 -O0 -ggdb -fpermissive -Wno-int-to-pointer-cast -D__ARM_ARCH_7M__=1 $(patsubst %,-I%,$(INCDIR) $(CPPUTEST)/include .)
 check: CFLAGS=
 check: LD_LIBRARIES=$(patsubst %,-L%,$(TESTLIBDIR)) $(patsubst %,-l%,$(TESTLIBS))
 check: $(TESTOBJDIR) lsm6dsl_unit_test iis2mdc_unit_test

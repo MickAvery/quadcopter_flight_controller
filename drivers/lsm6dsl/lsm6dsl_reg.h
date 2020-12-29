@@ -8,6 +8,8 @@
 #ifndef _LSM6DSL_REG_H
 #define _LSM6DSL_REG_H
 
+#define LSM6DSL_I2C_SLAVEADDR 0x6A /*!< 7-bit I2C slave address, provided that SDO/SDA is pulled low (7'b1101010) */
+
 /**
  * /brief Enable embedded functions register (Read/Write)
  **/
