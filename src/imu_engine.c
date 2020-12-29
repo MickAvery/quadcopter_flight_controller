@@ -33,10 +33,11 @@ static iis2mdc_handle_t iis2mdc;
 
 static const lsm6dsl_config_t lsm6dsl_cfg =
 {
-  &I2CD2,
-  LSM6DSL_104_Hz,
-  LSM6DSL_ACCEL_2G,
-  LSM6DSL_GYRO_250DPS
+  .i2c_drv   = &I2CD2,
+  .accel_odr = LSM6DSL_ACCEL_3_33_KHz,
+  .gyro_odr  = LSM6DSL_GYRO_3_33_KHz,
+  .accel_fs  = LSM6DSL_ACCEL_8G,
+  .gyro_fs   = LSM6DSL_GYRO_500DPS
 };
 
 static const iis2mdc_config_t iis2mdc_cfg =
