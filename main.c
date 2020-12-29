@@ -54,7 +54,8 @@ static void tsv(BaseSequentialStream* chp, int argc, char* argv[])
       mag[x] / 1000.0f, mag[y] / 1000.0f, mag[z] / 1000.0f,
       euler[x], euler[y], euler[z]);
 
-    chThdSleepMilliseconds(3);
+    // chThdSleepMilliseconds(3);
+    chThdSleepMicroseconds(500);
   }
 }
 

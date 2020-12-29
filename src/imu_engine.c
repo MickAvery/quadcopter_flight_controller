@@ -149,9 +149,8 @@ THD_FUNCTION(imuEngineThread, arg)
 
       osalMutexUnlock(&handle->lock);
 
-      /* TODO: this might need to be changed... */
-      chThdSleepMilliseconds(10);
-
+      /* TODO: dont hardcode this value */
+      chThdSleepMicroseconds(301); /* Matches sampling period (rounded to nearest integer) */
     }
   }
 }

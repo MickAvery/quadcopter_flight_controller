@@ -339,7 +339,7 @@ THD_FUNCTION(mainControllerThread, arg)
     /* drive motors with appropriate duty cycles */
     motorDriverSetDutyCycles(&MOTOR_DRIVER, duty_cycles);
 
-    chThdSleepMilliseconds(10U);
+    chThdSleepMilliseconds(1U);
   }
 }
 
