@@ -35,10 +35,10 @@ static const lsm6dsl_config_t lsm6dsl_cfg =
 {
   .i2c_drv     = &I2CD2,
   .accel_odr   = LSM6DSL_ACCEL_3_33_KHz,
-  .gyro_odr    = LSM6DSL_GYRO_3_33_KHz,
+  .gyro_odr    = LSM6DSL_GYRO_104_Hz,
   .accel_fs    = LSM6DSL_ACCEL_8G,
   .gyro_fs     = LSM6DSL_GYRO_500DPS,
-  .gyro_lpf_en = true,
+  .gyro_lpf_en = false,
   .gyro_lpf_bw = LSM6DSL_GYRO_LPF_BW_D
 };
 
