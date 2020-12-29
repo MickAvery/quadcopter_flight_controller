@@ -7,6 +7,7 @@
  * and sets drives the motors accordingly.
  */
 
+#include <string.h>
 #include <math.h>
 #include "main_controller.h"
 #include "imu_engine.h"
@@ -25,33 +26,13 @@ main_ctrl_handle_t MAIN_CTRL;
  */
 typedef enum
 {
-  GROUNDED = 0, /*!< multirotor is grounded, pull throttle above threshold to commence flight */
-  FLYING,      /*!< multirotor is flying, pull throttle down to minimum threshold to ground the multirotor */
-  HYSTERESIS_STATES
-} hysteresis_states_t;
-
-/**
- * hysteresis range definition
- */
-typedef struct
-{
-  int32_t min;
-  int32_t max;
-} hysteresis_range_t;
-
-/**
- * hysteresis ranges for flight state transitions
- */
-static hysteresis_range_t hysteresis_ranges[HYSTERESIS_STATES] =
-{
-  /* MIN = 0%, MAX = 25% */
-  { 0U,    1500U }, /* grounded */
-
-  /* MIN = 15%, MAX = 100% */
-  { 1000U, 10000U } /* liftoff */
-};
+  UNARMED = 0, /*!< multirotor is unarmed, must flight arming switch */
+  ARMED,       /*!< multirotor is armed, ready for liftoff */
+  FLYING       /*!< multirotor is flying, PID loops running */
+} fc_states_t;
 
 /* TODO: maybe put these in a config file? */
+#define THROTTLE_MIN  1000 /* 10% */
 #define BODY_TILT_MAX 45.0f
 #define PID_ITERM_MAX 400.0f
 
@@ -171,44 +152,15 @@ THD_FUNCTION(mainControllerThread, arg)
 {
   (void)arg;
 
-  /* keep track of hysteresis state */
-  static hysteresis_states_t flight_state = GROUNDED;
-
-  /**
-   * wait for radio transceiver to read first frame
-   */
-  while(radioTxRxGetState(&RADIO_TXRX) != RADIO_TXRX_ACTIVE) {
-    chThdSleepMilliseconds(5U);
-  }
+  /* keep track of FC state */
+  static fc_states_t flight_state = UNARMED;
 
   /* wait for first frame to be parsed */
   chThdSleepMilliseconds(RADIO_PPM_LENGTH_MS);
 
   /**
-   * Arming sequence
-   * make sure throttle is at the bottom position
-   * (or at least less than the throttle threshold when multirotor is grounded)
-   */
-
-  int32_t throttle_pcnt = 0;
-  float throttle_pcnt_f = 0.0f;
-  float yaw_rc_sp = 0.0f;
-
-  do {
-
-    uint32_t channels[MOTOR_DRIVER_MOTORS] = {0U};
-    radioTxRxReadInputs(&RADIO_TXRX, channels);
-
-    throttle_pcnt = (int32_t)channels[RADIO_TXRX_THROTTLE];
-
-    chThdSleepMilliseconds(RADIO_PPM_LENGTH_MS);
-
-  } while(throttle_pcnt >= hysteresis_ranges[flight_state].max);
-
-  /**
    * Main logic
    */
-
   while(true)
   {
     uint32_t channels[RADIO_TXRX_CHANNELS] = {0U};
@@ -216,35 +168,63 @@ THD_FUNCTION(mainControllerThread, arg)
 
     radioTxRxReadInputs(&RADIO_TXRX, channels);
 
-    throttle_pcnt = RADIO_TXRX.channels[RADIO_TXRX_THROTTLE];
-    throttle_pcnt_f = throttle_pcnt / 10000.0f;
-    yaw_rc_sp = RADIO_TXRX.rc_deflections[RADIO_TXRX_YAW];
+    radio_tx_rx_state_t rc_state = radioTxRxGetState(&RADIO_TXRX);
+    int32_t arm_switch = channels[RADIO_TXRX_AUXA];
+    int32_t throttle_pcnt = channels[RADIO_TXRX_THROTTLE];
+    float throttle_pcnt_f = (float)throttle_pcnt / 10000.0f;
+    float yaw_rc_sp = RADIO_TXRX.rc_deflections[RADIO_TXRX_YAW];
 
     /**
      * Flight state machine
      */
     switch(flight_state)
     {
-      case GROUNDED:
-      {
+      case UNARMED:
+        /* don't drive motors */
+        memset(duty_cycles, 0, sizeof(duty_cycles));
 
-        /* don't drive the motors */
-        for(size_t i = 0 ; i < MOTOR_DRIVER_MOTORS ; i++) {
-          duty_cycles[i] = 0U;
+        /* Three conditions need to be met to arm the quad:
+         *   1. RC must be receiving PPM signals from receiver
+         *   2. Flip the arming switch (i.e. signal at arming channel from RC is >50%)
+         *   3. Throttle needs to be down
+         */
+        if( (rc_state == RADIO_TXRX_ACTIVE) && (throttle_pcnt < THROTTLE_MIN) && (arm_switch > 5000) ) /* 50000 == 50% */
+        {
+          flight_state = ARMED;
+          chprintf(
+            (BaseSequentialStream*)&SD4,
+            "UNARMED -> ARMED\n");
         }
+
+        break;
+
+      case ARMED:
+        /* don't drive motors */
+        memset(duty_cycles, 0, sizeof(duty_cycles));
 
         /* reset PID controllers */
         pidReset(&roll_pid);
         pidReset(&pitch_pid);
         pidReset(&yaw_pid);
 
-        /* perform hysteresis */
-        if(throttle_pcnt > hysteresis_ranges[GROUNDED].max) {
+        /* Switch states when appropriate */
+        if(throttle_pcnt > THROTTLE_MIN)
+        {
           flight_state = FLYING;
+          chprintf(
+            (BaseSequentialStream*)&SD4,
+            "ARMED -> FLYING\n");
+        }
+        else if(arm_switch < 5000)
+        {
+          /* arm switch flipped to unarmed position */
+          flight_state = UNARMED;
+          chprintf(
+            (BaseSequentialStream*)&SD4,
+            "ARMED -> UNARMED\n");
         }
 
         break;
-      }
 
       case FLYING:
       {
@@ -340,9 +320,14 @@ THD_FUNCTION(mainControllerThread, arg)
         //   (BaseSequentialStream*)&SD4,
         //   "range = %0.2f\n", motor_range);
 
-        /* perform hysteresis */
-        if(throttle_pcnt < hysteresis_ranges[FLYING].min)
-          flight_state = GROUNDED;
+        /* Throttle stick low, quad grounded */
+        if(throttle_pcnt < THROTTLE_MIN)
+        {
+          flight_state = ARMED;
+          chprintf(
+            (BaseSequentialStream*)&SD4,
+            "FLYING -> ARMED\n");
+        }
 
         break;
       }
