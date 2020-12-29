@@ -69,6 +69,19 @@ typedef enum
 } lsm6dsl_gyro_odr_t;
 
 /**
+ * \brief Gyroscope LPF bandwidth, each selection (A,B,C,D) depends on ODR,
+ *        see datasheet for details
+ *        (look for FTYPE[1:0] in CTRL6_C register)
+ */
+typedef enum
+{
+  LSM6DSL_GYRO_LPF_BW_A, /**<  */
+  LSM6DSL_GYRO_LPF_BW_B, /**<  */
+  LSM6DSL_GYRO_LPF_BW_C, /**<  */
+  LSM6DSL_GYRO_LPF_BW_D  /**<  */
+} lsm6dsl_gyro_lpf_bw_t;
+
+/**
  * \brief Possible accelerometer fullscales
  */
 typedef enum
@@ -117,6 +130,9 @@ typedef struct
 
   lsm6dsl_accel_fullscale_t accel_fs; /**< Accelerometer fullscale */
   lsm6dsl_gyro_fullscale_t gyro_fs;   /**< Gyroscope fullscale */
+
+  bool gyro_lpf_en; /**< If set, low-pass filter is applied to gyroscope fullscale */
+  lsm6dsl_gyro_lpf_bw_t gyro_lpf_bw;
 } lsm6dsl_config_t;
 
 /**

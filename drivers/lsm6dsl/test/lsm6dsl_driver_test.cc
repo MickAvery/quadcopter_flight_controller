@@ -15,6 +15,7 @@
 static I2CDriver i2c;
 
 static void expect_i2c_read(
+  uint8_t* txbuf,
   uint8_t* rxbuf,
   size_t rxbytes,
   i2caddr_t addr,
@@ -22,6 +23,8 @@ static void expect_i2c_read(
 {
   mock().expectOneCall("i2cMasterReceiveTimeout")
         .withParameter("addr", addr)
+        .withParameter("txbuf", txbuf, 1)
+        .withParameter("txbytes", 1)
         .withOutputParameterReturning("rxbuf", rxbuf, rxbytes)
         .withParameter("rxbytes", rxbytes)
         .andReturnValue(ret);
@@ -59,12 +62,31 @@ static void expect_startup_sequence(
   membuf[6] = CTRL2_G_ADDR;
   membuf[7] = membuf[3] | (cfg->gyro_odr << 4) | (cfg->gyro_fs << 2);
 
+  /* read from and write to CTRL4_C register */
+  membuf[8]  = CTRL4_C_ADDR;
+  membuf[9]  = 0x00U;
+  membuf[10] = CTRL4_C_ADDR;
+  membuf[11] = (membuf[9] & (~LPF1_SEL_G)) | (cfg->gyro_lpf_en << 1);
+
+  /* read from and write to CTRL6_C register */
+  membuf[12]  = CTRL6_C_ADDR;
+  membuf[13]  = 0x00U;
+  membuf[14]  = CTRL6_C_ADDR;
+  membuf[15]  = (membuf[13] & (~FTYPE)) | (cfg->gyro_lpf_bw);
+
   mock().expectOneCall("i2cAcquireBus");
   expect_i2c_write(&membuf[0], 1U, &membuf[1], 1, LSM6DSL_I2C_SLAVEADDR, MSG_OK);
   expect_i2c_write(&membuf[2], 1U, &membuf[3], 1, LSM6DSL_I2C_SLAVEADDR, MSG_OK);
+  expect_i2c_write(&membuf[8], 1U, &membuf[9], 1, LSM6DSL_I2C_SLAVEADDR, MSG_OK);
+  expect_i2c_write(&membuf[12], 1U, &membuf[9], 1, LSM6DSL_I2C_SLAVEADDR, MSG_OK);
 
   expect_i2c_write(&membuf[4], 2U, NULL, 0U, LSM6DSL_I2C_SLAVEADDR, MSG_OK);
   expect_i2c_write(&membuf[6], 2U, NULL, 0U, LSM6DSL_I2C_SLAVEADDR, MSG_OK);
+  expect_i2c_write(&membuf[10], 2U, NULL, 0U, LSM6DSL_I2C_SLAVEADDR, MSG_OK);
+
+  if(cfg->gyro_lpf_en)
+    expect_i2c_write(&membuf[14], 2U, NULL, 0U, LSM6DSL_I2C_SLAVEADDR, MSG_OK);
+
   mock().expectOneCall("i2cReleaseBus");
 }
 
@@ -76,7 +98,9 @@ TEST_GROUP(LSM6DSLStartTestGroup)
     .accel_odr = LSM6DSL_ACCEL_12_5_Hz,
     .gyro_odr  = LSM6DSL_GYRO_12_5_Hz,
     .accel_fs  = LSM6DSL_ACCEL_4G,
-    .gyro_fs   = LSM6DSL_GYRO_1000DPS
+    .gyro_fs   = LSM6DSL_GYRO_1000DPS,
+    .gyro_lpf_en = true,
+    .gyro_lpf_bw = LSM6DSL_GYRO_LPF_BW_D
   };
 
   void setup()
@@ -112,7 +136,9 @@ TEST_GROUP(LSM6DSLReadTestGroup)
     .accel_odr = LSM6DSL_ACCEL_12_5_Hz,
     .gyro_odr  = LSM6DSL_GYRO_12_5_Hz,
     .accel_fs  = LSM6DSL_ACCEL_2G,
-    .gyro_fs   = LSM6DSL_GYRO_250DPS
+    .gyro_fs   = LSM6DSL_GYRO_250DPS,
+    .gyro_lpf_en = true,
+    .gyro_lpf_bw = LSM6DSL_GYRO_LPF_BW_D
   };
 
   void setup()
@@ -192,7 +218,9 @@ TEST_GROUP(LSM6DSLPassThroughTestGroup)
     .accel_odr = LSM6DSL_ACCEL_12_5_Hz,
     .gyro_odr  = LSM6DSL_GYRO_12_5_Hz,
     .accel_fs  = LSM6DSL_ACCEL_2G,
-    .gyro_fs   = LSM6DSL_GYRO_250DPS
+    .gyro_fs   = LSM6DSL_GYRO_250DPS,
+    .gyro_lpf_en = true,
+    .gyro_lpf_bw = LSM6DSL_GYRO_LPF_BW_D
   };
 
   void setup()

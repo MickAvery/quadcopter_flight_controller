@@ -109,7 +109,9 @@ lsm6dsl_status_t lsm6dslStart(lsm6dsl_handle_t* handle, const lsm6dsl_config_t* 
     "lsm6dslStart() called at invalid state");
 
   uint8_t ctrl1_xl = 0U;
-  uint8_t ctrl2_g = 0U;
+  uint8_t ctrl2_g  = 0U;
+  uint8_t ctrl4_c  = 0U;
+  uint8_t ctrl6_c  = 0U;
   handle->cfg = cfg;
   I2CDriver* i2c = handle->cfg->i2c_drv;
   lsm6dsl_status_t ret = LSM6DSL_SERIAL_ERROR;
@@ -120,19 +122,40 @@ lsm6dsl_status_t lsm6dslStart(lsm6dsl_handle_t* handle, const lsm6dsl_config_t* 
     /* I2C read failed */
   } else if(reg_read(handle, CTRL2_G_ADDR, &ctrl2_g, 1U) != MSG_OK) {
     /* I2C read failed */
+  } else if(reg_read(handle, CTRL4_C_ADDR, &ctrl4_c, 1U) != MSG_OK) {
+    /* I2C read failed */
+  } else if(reg_read(handle, CTRL6_C_ADDR, &ctrl6_c, 1U) != MSG_OK) {
+    /* I2C read failed */
   } else {
 
+    /* accelerometer configs */
     ctrl1_xl &= ~(0xF << 4);
     ctrl1_xl |= (handle->cfg->accel_odr << 4);
     ctrl1_xl |= (handle->cfg->accel_fs << 2);
 
+    /* gyroscope configs */
     ctrl2_g &= ~(0xF << 4);
     ctrl2_g |= (handle->cfg->gyro_odr << 4);
     ctrl2_g |= (handle->cfg->gyro_fs << 2);
 
+    /* gyroscope LPF enable */
+    ctrl4_c &= ~LPF1_SEL_G;
+    ctrl4_c |= (handle->cfg->gyro_lpf_en << 1);
+
+    /* gyroscope LPF BW set */
+    if(handle->cfg->gyro_lpf_en)
+    {
+      ctrl6_c &= ~FTYPE;
+      ctrl6_c |= (handle->cfg->gyro_lpf_bw);
+    }
+
     if(reg_write(handle, CTRL1_XL_ADDR, ctrl1_xl) != MSG_OK) {
       /* I2C write failed */
     } else if(reg_write(handle, CTRL2_G_ADDR, ctrl2_g) != MSG_OK) {
+      /* I2C write failed */
+    } else if(reg_write(handle, CTRL4_C_ADDR, ctrl4_c) != MSG_OK) {
+      /* I2C write failed */
+    } else if(reg_write(handle, CTRL6_C_ADDR, ctrl6_c) != MSG_OK) {
       /* I2C write failed */
     } else {
       handle->accel_sensitivity = accel_sensitivities_list[handle->cfg->accel_fs];
