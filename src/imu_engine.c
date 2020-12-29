@@ -82,9 +82,10 @@ THD_FUNCTION(imuEngineThread, arg)
 
     if(lsm6dslRead(&lsm6dsl, &readings) != LSM6DSL_OK) {
       /* failed to read accel and gyro data */
-    } else if(iis2mdcRead(&iis2mdc, &mag_readings) != IIS2MDC_STATUS_OK) {
-      /* failed to read mag data */
     } else {
+
+      /* read magnetometer data, doesn't matter if we succeed or not */
+      (void)iis2mdcRead(&iis2mdc, &mag_readings);
 
       /* euler angle measurements */
       /* https://engineering.stackexchange.com/questions/3348/calculating-pitch-yaw-and-roll-from-mag-acc-and-gyro-data */
