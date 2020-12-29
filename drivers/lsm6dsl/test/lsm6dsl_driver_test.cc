@@ -54,10 +54,10 @@ static void expect_startup_sequence(
   membuf[3] = 0x00U;
 
   membuf[4] = CTRL1_XL_ADDR;
-  membuf[5] = membuf[1] | (cfg->odr << 4) | (cfg->accel_fs << 2);
+  membuf[5] = membuf[1] | (cfg->accel_odr << 4) | (cfg->accel_fs << 2);
 
   membuf[6] = CTRL2_G_ADDR;
-  membuf[7] = membuf[3] | (cfg->odr << 4) | (cfg->gyro_fs << 2);
+  membuf[7] = membuf[3] | (cfg->gyro_odr << 4) | (cfg->gyro_fs << 2);
 
   mock().expectOneCall("i2cAcquireBus");
   expect_i2c_write(&membuf[0], 1U, &membuf[1], 1, LSM6DSL_I2C_SLAVEADDR, MSG_OK);
@@ -72,10 +72,11 @@ TEST_GROUP(LSM6DSLStartTestGroup)
 {
   lsm6dsl_handle_t lsm6dsl;
   const lsm6dsl_config_t cfg = {
-    &i2c,
-    LSM6DSL_12_5_Hz,
-    LSM6DSL_ACCEL_4G,
-    LSM6DSL_GYRO_1000DPS
+    .i2c_drv   = &i2c,
+    .accel_odr = LSM6DSL_ACCEL_12_5_Hz,
+    .gyro_odr  = LSM6DSL_GYRO_12_5_Hz,
+    .accel_fs  = LSM6DSL_ACCEL_4G,
+    .gyro_fs   = LSM6DSL_GYRO_1000DPS
   };
 
   void setup()
@@ -107,10 +108,11 @@ TEST_GROUP(LSM6DSLReadTestGroup)
 {
   lsm6dsl_handle_t lsm6dsl;
   const lsm6dsl_config_t cfg = {
-    &i2c,
-    LSM6DSL_12_5_Hz,
-    LSM6DSL_ACCEL_2G,
-    LSM6DSL_GYRO_250DPS
+    .i2c_drv   = &i2c,
+    .accel_odr = LSM6DSL_ACCEL_12_5_Hz,
+    .gyro_odr  = LSM6DSL_GYRO_12_5_Hz,
+    .accel_fs  = LSM6DSL_ACCEL_2G,
+    .gyro_fs   = LSM6DSL_GYRO_250DPS
   };
 
   void setup()
@@ -186,10 +188,11 @@ TEST_GROUP(LSM6DSLPassThroughTestGroup)
 {
   lsm6dsl_handle_t lsm6dsl;
   const lsm6dsl_config_t cfg = {
-    &i2c,
-    LSM6DSL_12_5_Hz,
-    LSM6DSL_ACCEL_2G,
-    LSM6DSL_GYRO_250DPS
+    .i2c_drv   = &i2c,
+    .accel_odr = LSM6DSL_ACCEL_12_5_Hz,
+    .gyro_odr  = LSM6DSL_GYRO_12_5_Hz,
+    .accel_fs  = LSM6DSL_ACCEL_2G,
+    .gyro_fs   = LSM6DSL_GYRO_250DPS
   };
 
   void setup()

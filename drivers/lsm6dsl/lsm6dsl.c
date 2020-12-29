@@ -123,11 +123,11 @@ lsm6dsl_status_t lsm6dslStart(lsm6dsl_handle_t* handle, const lsm6dsl_config_t* 
   } else {
 
     ctrl1_xl &= ~(0xF << 4);
-    ctrl1_xl |= (handle->cfg->odr << 4);
+    ctrl1_xl |= (handle->cfg->accel_odr << 4);
     ctrl1_xl |= (handle->cfg->accel_fs << 2);
 
     ctrl2_g &= ~(0xF << 4);
-    ctrl2_g |= (handle->cfg->odr << 4);
+    ctrl2_g |= (handle->cfg->gyro_odr << 4);
     ctrl2_g |= (handle->cfg->gyro_fs << 2);
 
     if(reg_write(handle, CTRL1_XL_ADDR, ctrl1_xl) != MSG_OK) {
