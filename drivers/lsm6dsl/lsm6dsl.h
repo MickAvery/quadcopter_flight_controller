@@ -75,10 +75,10 @@ typedef enum
  */
 typedef enum
 {
-  LSM6DSL_GYRO_LPF_BW_A, /**<  */
-  LSM6DSL_GYRO_LPF_BW_B, /**<  */
-  LSM6DSL_GYRO_LPF_BW_C, /**<  */
-  LSM6DSL_GYRO_LPF_BW_D  /**<  */
+  LSM6DSL_GYRO_LPF_BW_A, /**< [ODR=800Hz -> 245Hz] ; [ODR=1.6kHz -> 315Hz] ; [ODR=3.3kHz -> 343Hz] ; [ODR=6.6kHz -> 351Hz] */
+  LSM6DSL_GYRO_LPF_BW_B, /**< [ODR=800Hz -> 195Hz] ; [ODR=1.6kHz -> 224Hz] ; [ODR=3.3kHz -> 234Hz] ; [ODR=6.6kHz -> 237Hz] */
+  LSM6DSL_GYRO_LPF_BW_C, /**< [ODR=800Hz -> 155Hz] ; [ODR=1.6kHz -> 168Hz] ; [ODR=3.3kHz -> 172Hz] ; [ODR=6.6kHz -> 173Hz] */
+  LSM6DSL_GYRO_LPF_BW_D  /**< [ODR=800Hz -> 293Hz] ; [ODR=1.6kHz -> 505Hz] ; [ODR=3.3kHz -> 925Hz] ; [ODR=6.6kHz -> 937Hz] */
 } lsm6dsl_gyro_lpf_bw_t;
 
 /**
