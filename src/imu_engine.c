@@ -33,11 +33,13 @@ static iis2mdc_handle_t iis2mdc;
 
 static const lsm6dsl_config_t lsm6dsl_cfg =
 {
-  .i2c_drv   = &I2CD2,
-  .accel_odr = LSM6DSL_ACCEL_3_33_KHz,
-  .gyro_odr  = LSM6DSL_GYRO_3_33_KHz,
-  .accel_fs  = LSM6DSL_ACCEL_8G,
-  .gyro_fs   = LSM6DSL_GYRO_500DPS
+  .i2c_drv     = &I2CD2,
+  .accel_odr   = LSM6DSL_ACCEL_3_33_KHz,
+  .gyro_odr    = LSM6DSL_GYRO_3_33_KHz,
+  .accel_fs    = LSM6DSL_ACCEL_8G,
+  .gyro_fs     = LSM6DSL_GYRO_500DPS,
+  .gyro_lpf_en = true,
+  .gyro_lpf_bw = LSM6DSL_GYRO_LPF_BW_D
 };
 
 static const iis2mdc_config_t iis2mdc_cfg =
@@ -115,24 +117,26 @@ THD_FUNCTION(imuEngineThread, arg)
         first_reading = false;
 
       } else {
-        float roll_gyro = handle->euler_angles[IMU_ENGINE_ROLL] + readings.gyro_y * 0.00001f; /* roll (gyro / 1000 * 0.01 -> dt)*/
-        float pitch_gyro = handle->euler_angles[IMU_ENGINE_PITCH] + readings.gyro_x * 0.00001f; /* pitch (gyro / 1000 * 0.01 -> dt) */
+        // float roll_gyro = handle->euler_angles[IMU_ENGINE_ROLL] + readings.gyro_y * 0.00001f; /* roll (gyro / 1000 * 0.01 -> dt)*/
+        // float pitch_gyro = handle->euler_angles[IMU_ENGINE_PITCH] + readings.gyro_x * 0.00001f; /* pitch (gyro / 1000 * 0.01 -> dt) */
 
-        float roll_acc = atan2f(readings.acc_x, readings.acc_z) * 180.0f / M_PI;
-        float pitch_acc = atan2f(readings.acc_y, readings.acc_z) * 180.0f / M_PI;
+        // float roll_acc = atan2f(readings.acc_x, readings.acc_z) * 180.0f / M_PI;
+        // float pitch_acc = atan2f(readings.acc_y, readings.acc_z) * 180.0f / M_PI;
 
         /* apply complementary filter */
         /* TODO: magic numbers */
-        handle->euler_angles[IMU_ENGINE_ROLL] = (roll_gyro * 0.55f) + (roll_acc * 0.45f);
-        handle->euler_angles[IMU_ENGINE_PITCH] = (pitch_gyro * 0.98f) + (pitch_acc * 0.02f);
+        // handle->euler_angles[IMU_ENGINE_ROLL] = (roll_gyro * 0.55f) + (roll_acc * 0.45f);
+        // handle->euler_angles[IMU_ENGINE_PITCH] = (pitch_gyro * 0.98f) + (pitch_acc * 0.02f);
+        handle->euler_angles[IMU_ENGINE_ROLL] = atan2f(readings.acc_x, readings.acc_z) * 180.0f / M_PI; /* roll */
+        handle->euler_angles[IMU_ENGINE_PITCH] = atan2f(readings.acc_y, readings.acc_z) * 180.0f / M_PI; /* pitch */
 
         /* convert angles to radians for yaw calculation */
         /* TODO: there's gotta be a better way to do this... */
-        float roll  = handle->euler_angles[IMU_ENGINE_ROLL] * M_PI / 180.0f;
-        float pitch = handle->euler_angles[IMU_ENGINE_PITCH] * M_PI / 180.0f;
-        float mag_x = mag_readings.mag_x;
-        float mag_y = mag_readings.mag_y;
-        float mag_z = mag_readings.mag_z;
+        // float roll  = handle->euler_angles[IMU_ENGINE_ROLL] * M_PI / 180.0f;
+        // float pitch = handle->euler_angles[IMU_ENGINE_PITCH] * M_PI / 180.0f;
+        // float mag_x = mag_readings.mag_x;
+        // float mag_y = mag_readings.mag_y;
+        // float mag_z = mag_readings.mag_z;
 
         /* finally, compute yaw */
         /* https://community.st.com/s/question/0D50X00009XkX3s/lsm303agr-conversion-accelerometers-and-magnetometers-output-to-pitch-roll-and-yaw */
@@ -142,14 +146,14 @@ THD_FUNCTION(imuEngineThread, arg)
         // float Bx3 = mag_x * cosf(pitch) + Bz2 * sinf(pitch);
         // handle->euler_angles[IMU_ENGINE_YAW] = atan2f(By2, Bx3);// * 180.0f / M_PI;
 
-        float y = (-mag_y * cosf(roll)) + (mag_z * sinf(roll));
-        float x = (mag_x * cosf(pitch)) + (mag_y * sinf(pitch) * sinf(roll)) + (mag_z * sinf(pitch) * cosf(roll));
-        handle->euler_angles[IMU_ENGINE_YAW] = atan2f(y, x) * 180.0f / M_PI;
+        // float y = (-mag_y * cosf(roll)) + (mag_z * sinf(roll));
+        // float x = (mag_x * cosf(pitch)) + (mag_y * sinf(pitch) * sinf(roll)) + (mag_z * sinf(pitch) * cosf(roll));
+        // handle->euler_angles[IMU_ENGINE_YAW] = atan2f(y, x) * 180.0f / M_PI;
       }
 
       osalMutexUnlock(&handle->lock);
 
-      /* TODO: dont hardcode this value */
+      /* TODO: dont hardcode this value, put in config file */
       chThdSleepMicroseconds(301); /* Matches sampling period (rounded to nearest integer) */
     }
   }
