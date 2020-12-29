@@ -10,9 +10,9 @@
 #include "CppUTest/TestHarness.h"
 #include "CppUTestExt/MockSupport.h"
 #include "lsm6dsl.h"
+#include "lsm6dsl_reg.h"
 
 static I2CDriver i2c;
-static i2caddr_t lsm6dsl_addr = 0b01101010;
 
 static void expect_i2c_read(
   uint8_t* rxbuf,
@@ -47,24 +47,24 @@ static void expect_startup_sequence(
   uint8_t* membuf,
   size_t membytes)
 {
-  membuf[0] = 0x10U;
+  membuf[0] = CTRL1_XL_ADDR;
   membuf[1] = 0x00U;
 
-  membuf[2] = 0x11U;
+  membuf[2] = CTRL2_G_ADDR;
   membuf[3] = 0x00U;
 
-  membuf[4] = 0x10U;
-  membuf[5] = membuf[0] | (cfg->odr << 4) | (cfg->accel_fs << 2);
+  membuf[4] = CTRL1_XL_ADDR;
+  membuf[5] = membuf[1] | (cfg->odr << 4) | (cfg->accel_fs << 2);
 
-  membuf[6] = 0x11U;
-  membuf[7] = membuf[0] | (cfg->odr << 4) | (cfg->gyro_fs << 2);
+  membuf[6] = CTRL2_G_ADDR;
+  membuf[7] = membuf[3] | (cfg->odr << 4) | (cfg->gyro_fs << 2);
 
   mock().expectOneCall("i2cAcquireBus");
-  expect_i2c_write(&membuf[0], 1U, &membuf[1], 1, lsm6dsl_addr, MSG_OK);
-  expect_i2c_write(&membuf[2], 1U, &membuf[3], 1, lsm6dsl_addr, MSG_OK);
+  expect_i2c_write(&membuf[0], 1U, &membuf[1], 1, LSM6DSL_I2C_SLAVEADDR, MSG_OK);
+  expect_i2c_write(&membuf[2], 1U, &membuf[3], 1, LSM6DSL_I2C_SLAVEADDR, MSG_OK);
 
-  expect_i2c_write(&membuf[4], 2U, NULL, 0U, lsm6dsl_addr, MSG_OK);
-  expect_i2c_write(&membuf[6], 2U, NULL, 0U, lsm6dsl_addr, MSG_OK);
+  expect_i2c_write(&membuf[4], 2U, NULL, 0U, LSM6DSL_I2C_SLAVEADDR, MSG_OK);
+  expect_i2c_write(&membuf[6], 2U, NULL, 0U, LSM6DSL_I2C_SLAVEADDR, MSG_OK);
   mock().expectOneCall("i2cReleaseBus");
 }
 
@@ -148,11 +148,11 @@ TEST(LSM6DSLReadTestGroup, lsm6dslTestValues)
 
   mock().expectOneCall("i2cAcquireBus");
 
-  expect_i2c_write(&status_reg_addr, 1, &status_reg, 1, lsm6dsl_addr, MSG_OK);
+  expect_i2c_write(&status_reg_addr, 1, &status_reg, 1, LSM6DSL_I2C_SLAVEADDR, MSG_OK);
   expect_i2c_write(
     &read_addr, 1,
     (uint8_t*)raw_sensor_bytes, sizeof(raw_sensor_bytes),
-    lsm6dsl_addr, MSG_OK);
+    LSM6DSL_I2C_SLAVEADDR, MSG_OK);
 
   mock().expectOneCall("i2cReleaseBus");
 
@@ -175,7 +175,7 @@ TEST(LSM6DSLReadTestGroup, lsm6dslReadingsNotReady)
 
   mock().expectOneCall("i2cAcquireBus");
 
-  expect_i2c_write(&status_addr, 1, &status_reg, 1, lsm6dsl_addr, MSG_OK);
+  expect_i2c_write(&status_addr, 1, &status_reg, 1, LSM6DSL_I2C_SLAVEADDR, MSG_OK);
 
   mock().expectOneCall("i2cReleaseBus");
 
@@ -216,11 +216,11 @@ TEST(LSM6DSLPassThroughTestGroup, lsm6dslPassThroughSuccessTest)
   /* read MASTER_CONFIG and set START_CONFIG bit */
   membuf[0] = 0x1AU; /* MASTER_CONFIG address */
   membuf[1] = 0x00U; /* MASTER_CONFIG default value */
-  expect_i2c_write(&membuf[0], 1, &membuf[1], 1, lsm6dsl_addr, MSG_OK);
+  expect_i2c_write(&membuf[0], 1, &membuf[1], 1, LSM6DSL_I2C_SLAVEADDR, MSG_OK);
 
   membuf[2] = 0x1AU; /* MASTER_CONFIG address */
   membuf[3] = membuf[1] | (1 << 4); /* setting START_CONFIG */
-  expect_i2c_write(&membuf[2], 2, NULL, 0, lsm6dsl_addr, MSG_OK);
+  expect_i2c_write(&membuf[2], 2, NULL, 0, LSM6DSL_I2C_SLAVEADDR, MSG_OK);
 
   /* reset MASTER_ON, START_CONFIG, and PULL_UP_EN
    * set PASS_THROUGH_MODE
@@ -229,7 +229,7 @@ TEST(LSM6DSLPassThroughTestGroup, lsm6dslPassThroughSuccessTest)
   membuf[5] = membuf[3] & ~(1 | (1 << 4) | (1 << 3));
   membuf[5] |= (1 << 2);
 
-  expect_i2c_write(&membuf[4], 2, NULL, 0, lsm6dsl_addr, MSG_OK);
+  expect_i2c_write(&membuf[4], 2, NULL, 0, LSM6DSL_I2C_SLAVEADDR, MSG_OK);
 
   mock().expectOneCall("i2cReleaseBus");
 
