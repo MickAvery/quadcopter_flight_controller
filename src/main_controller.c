@@ -43,9 +43,9 @@ static pid_ctrl_handle_t roll_pid;
 static const pid_cfg_t roll_pid_cfg =
 {
   /* PID constants */
-  3.0f, 5.5f, 4.0f, 0.0f,
+  3.0f, 5.5f, 4.0f, 0.0f, // TODO: coefficients, config file!
 
-  10e-3f,
+  1e-3f,                  // TODO: frequency, config file!
 
   PID_ITERM_MAX /* I-term max for saturation */
 };
@@ -54,9 +54,9 @@ static pid_ctrl_handle_t pitch_pid;
 static const pid_cfg_t pitch_pid_cfg =
 {
   /* PID constants */
-  3.0f, 5.5f, 4.0f, 0.0f,
+  3.0f, 5.5f, 4.0f, 0.0f, // TODO: coefficients, config file!
 
-  10e-3f,
+  1e-3f,                  // TODO: frequency, config file!
 
   PID_ITERM_MAX /* I-term max for saturation */
 };
@@ -65,9 +65,9 @@ static pid_ctrl_handle_t yaw_pid;
 static const pid_cfg_t yaw_pid_cfg =
 {
   /* PID constants */
-  3.0f, 5.5f, 4.0f, 0.0f,
+  3.0f, 5.5f, 4.0f, 0.0f, // TODO: coefficients, config file!
 
-  10e-3f,
+  1e-3f,                  // TODO: frequency, config file!
 
   PID_ITERM_MAX /* I-term max for saturation */
 };
@@ -248,9 +248,9 @@ THD_FUNCTION(mainControllerThread, arg)
         target_pitch_angle *= 5.0f; /* TODO: magic numbers */
 
         /* run iteration of PID loop */
-        float roll  = pidCompute(&roll_pid,  target_roll_angle,  gyro[IMU_ENGINE_ROLL] /1000.0f);
-        float pitch = pidCompute(&pitch_pid, target_pitch_angle, gyro[IMU_ENGINE_PITCH]/1000.0f);
-        float yaw   = pidCompute(&yaw_pid,   target_yaw_rate,    gyro[IMU_ENGINE_YAW]  /1000.0f);
+        float roll  = pidCompute(&roll_pid,  target_roll_angle,  gyro[IMU_ENGINE_ROLL]  /1000.0f);
+        float pitch = pidCompute(&pitch_pid, target_pitch_angle, gyro[IMU_ENGINE_PITCH] /1000.0f);
+        float yaw   = pidCompute(&yaw_pid,   target_yaw_rate,    gyro[IMU_ENGINE_YAW]   /1000.0f);
 
         /* limit the PID sums */
         roll  = constrainf(roll,  -PID_SUM_LIMIT, PID_SUM_LIMIT) / 1000.0f;
@@ -304,17 +304,17 @@ THD_FUNCTION(mainControllerThread, arg)
           float motor_output_f = motor_cycles[i] + throttle_pcnt_f;
 
           /* convert motor output to PWM duty cycle */
-          int32_t motor_output = (int32_t)(100.0f * motor_output_f);
+          int32_t motor_output = (int32_t)(100.0f * motor_output_f) * 100;
 
           /* constrain output to interval [0%, 100%] */
-          motor_output = constrain(motor_output, 0, 100);
+          motor_output = constrain(motor_output, 0, 10000);
 
           /* set duty cycle */
           duty_cycles[i] = (uint32_t)motor_output;
 
           // chprintf(
           //   (BaseSequentialStream*)&SD4,
-          //   "%d = %d\t", i, motor_output);
+          //   "%d = %3d\t", i, motor_output/100);
         }
         // chprintf(
         //   (BaseSequentialStream*)&SD4,
@@ -339,6 +339,7 @@ THD_FUNCTION(mainControllerThread, arg)
     /* drive motors with appropriate duty cycles */
     motorDriverSetDutyCycles(&MOTOR_DRIVER, duty_cycles);
 
+    /* TODO: dont hardcode this value, put in config file */
     chThdSleepMilliseconds(1U);
   }
 }
