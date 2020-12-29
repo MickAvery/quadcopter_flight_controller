@@ -31,18 +31,30 @@ typedef enum
  */
 typedef enum
 {
-  MOTOR_DRIVER_NW = 0, /*!< Northwest motor */
-  MOTOR_DRIVER_NE,     /*!< Northeast motor */
-  MOTOR_DRIVER_SE,     /*!< Southeast motor */
-  MOTOR_DRIVER_SW,     /*!< Southwest motor */
+  MOTOR_DRIVER_NW = 0, /*!< Northwest motor (CW) */
+  MOTOR_DRIVER_NE,     /*!< Northeast motor (CCW) */
+  MOTOR_DRIVER_SE,     /*!< Southeast motor (CW) */
+  MOTOR_DRIVER_SW,     /*!< Southwest motor (CCW) */
   MOTOR_DRIVER_MOTORS  /*!< Number of motors being driven */
 } motor_driver_positions_t;
+
+/**
+ * Scaling used when applying PID sum results to motors
+ */
+typedef struct
+{
+  float throttle;
+  float roll;
+  float pitch;
+  float yaw;
+} motor_scales_t;
 
 /**
  * Motor driver handle
  */
 typedef struct
 {
+  motor_scales_t scales[MOTOR_DRIVER_MOTORS];
   motor_driver_state_t state;
 } motor_driver_handle_t;
 

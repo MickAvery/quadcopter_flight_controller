@@ -125,6 +125,7 @@ static float constrainf(float in, float min, float max)
 #define RC_RATE             0.80f
 #define SUPER_RATE          0.65f
 #define RC_RATE_INCREMENTAL 14.54f
+#define PID_SUM_LIMIT       500.0f
 #define power3(x) (x*x*x)
 
 /**
@@ -184,6 +185,7 @@ THD_FUNCTION(mainControllerThread, arg)
    */
 
   int32_t throttle_pcnt = 0;
+  float throttle_pcnt_f = 0.0f;
   int32_t throttle_rc_sp = 0;
   float yaw_rc_sp = 0.0f;
 
@@ -210,6 +212,7 @@ THD_FUNCTION(mainControllerThread, arg)
     radioTxRxReadInputs(&RADIO_TXRX, channels);
 
     throttle_pcnt = RADIO_TXRX.channels[RADIO_TXRX_THROTTLE];
+    throttle_pcnt_f = throttle_pcnt / 10000.0f;
     throttle_rc_sp = RADIO_TXRX.setpoints[RADIO_TXRX_THROTTLE];
     yaw_rc_sp = RADIO_TXRX.rc_deflections[RADIO_TXRX_YAW];
 
@@ -261,22 +264,78 @@ THD_FUNCTION(mainControllerThread, arg)
         target_pitch_angle *= 5.0f; /* TODO: magic numbers */
 
         /* run iteration of PID loop */
-        float roll  = pidCompute(&roll_pid, target_roll_angle, gyro[IMU_ENGINE_ROLL]/1000.0f);
+        float roll  = pidCompute(&roll_pid,  target_roll_angle,  gyro[IMU_ENGINE_ROLL] /1000.0f);
         float pitch = pidCompute(&pitch_pid, target_pitch_angle, gyro[IMU_ENGINE_PITCH]/1000.0f);
-        float yaw   = pidCompute(&yaw_pid, target_yaw_rate, gyro[IMU_ENGINE_YAW]/1000.0f);
-        chprintf(
-          (BaseSequentialStream*)&SD4,
-          "throttle = %d\troll = %f\tpitch = %f\tyaw = %f\n", throttle_rc_sp, roll, pitch, yaw);
+        float yaw   = pidCompute(&yaw_pid,   target_yaw_rate,    gyro[IMU_ENGINE_YAW]  /1000.0f);
 
+        /* limit the PID sums */
+        roll  = constrainf(roll,  -PID_SUM_LIMIT, PID_SUM_LIMIT) / 1000.0f;
+        pitch = constrainf(pitch, -PID_SUM_LIMIT, PID_SUM_LIMIT) / 1000.0f;
+        yaw   = constrainf(yaw,   -PID_SUM_LIMIT, PID_SUM_LIMIT) / 1000.0f;
+        // chprintf(
+        //   (BaseSequentialStream*)&SD4,
+        //   "throttle = %d\troll = %f\tpitch = %f\tyaw = %f\n", throttle_rc_sp, roll, pitch, yaw);
+
+        /* determine motor duty cycles */
+        float motor_cycles[MOTOR_DRIVER_MOTORS];
+        float motor_range;
+        float motor_max = 0.0f;
+        float motor_min = 0.0f;
         for(size_t i = 0 ; i < MOTOR_DRIVER_MOTORS ; i++)
         {
+          float motor =
+            roll  * MOTOR_DRIVER.scales[i].roll  +
+            pitch * MOTOR_DRIVER.scales[i].pitch +
+            yaw   * MOTOR_DRIVER.scales[i].yaw;
 
+            if( motor < motor_min )
+              motor_min = motor;
+            else if( motor > motor_max )
+              motor_max = motor;
+
+            motor_cycles[i] = motor;
         }
+
+        motor_range = motor_max - motor_min;
+
+        /* TODO: remove when done
+         * applyMixerAdjustment() in betaflight */
+        if(motor_range > 1.0f)
+        {
+          for(size_t i = 0 ; i < MOTOR_DRIVER_MOTORS ; i++)
+            motor_cycles[i] /= motor_range;
+        }
+        else if(throttle_pcnt > 5000) /* throttle over 50% */
+          throttle_pcnt_f = constrainf(throttle_pcnt_f, -motor_min, 1.0f - motor_max);
+
+        // chprintf(
+        //   (BaseSequentialStream*)&SD4,
+        //   "range = %0.2f\tthrottle = %0.2f\t0 = %0.2f\t1 = %0.2f\t2 = %0.2f\t3 = %0.2f\n",
+        //   motor_range, throttle_pcnt_f, motor_cycles[0], motor_cycles[1], motor_cycles[2], motor_cycles[3]);
+
+        /* TODO: remove when done
+         * applyMixToMotors() in betaflight */
+        for(size_t i = 0 ; i < MOTOR_DRIVER_MOTORS ; i++)
+        {
+          float motor_output = motor_cycles[i] + throttle_pcnt_f;
+
+          /* TODO: magic numbers! */
+
+          motor_output = 1000.0f + 1000.0f * motor_output; // motorOutputMin + motorOutputRange * motorOutput;
+
+          motor_output = constrainf(motor_output, 1000.0f, 2000.0f);
+
+          chprintf(
+            (BaseSequentialStream*)&SD4,
+            "%d = %0.2f\t", i, motor_output);
+        }
+        chprintf(
+          (BaseSequentialStream*)&SD4,
+          "range = %0.2f\n", motor_range);
 
         /* perform hysteresis */
-        if(throttle_pcnt < hysteresis_ranges[FLYING].min) {
+        if(throttle_pcnt < hysteresis_ranges[FLYING].min)
           flight_state = GROUNDED;
-        }
 
         break;
       }

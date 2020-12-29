@@ -11,7 +11,14 @@
 /**
  * Global motor driver handle
  */
-motor_driver_handle_t MOTOR_DRIVER;
+motor_driver_handle_t MOTOR_DRIVER ={
+  .scales = {
+    [MOTOR_DRIVER_NW] = {1.0f, -1.0f,  1.0f,  1.0f},
+    [MOTOR_DRIVER_NE] = {1.0f,  1.0f,  1.0f, -1.0f},
+    [MOTOR_DRIVER_SE] = {1.0f,  1.0f, -1.0f,  1.0f},
+    [MOTOR_DRIVER_SW] = {1.0f, -1.0f, -1.0f, -1.0f}
+  }
+};
 
 /**
  * PWM Timer Clock Frequency (100kHz)

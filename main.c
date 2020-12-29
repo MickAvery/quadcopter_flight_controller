@@ -253,12 +253,11 @@ int main(void) {
       NULL,
       SHELL_WORKING_AREA_SIZE,
       "shell",
-      NORMALPRIO,
+      LOWPRIO,
       shellThread,
       (void*)&shellcfg);
 
     chThdWait(shelltp);
-    chThdSleepMilliseconds(500);
   }
 
   return 0;

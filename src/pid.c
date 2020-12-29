@@ -39,6 +39,11 @@ void pidInit(pid_ctrl_handle_t* pid, const pid_cfg_t* cfg)
 
   pid->cfg = cfg;
 
+  pid->P = 0.0f;
+  pid->I = 0.0f;
+  pid->D = 0.0f;
+  pid->F = 0.0f;
+  pid->sum = 0.0f;
   pid->previous_sp = 0.0f;
   pid->previous_in = 0.0f;
   pid->integral_err = 0.0f;
@@ -106,6 +111,12 @@ void pidReset(pid_ctrl_handle_t* pid)
 {
   osalDbgCheck(pid != NULL);
 
+  pid->P = 0.0f;
+  pid->I = 0.0f;
+  pid->D = 0.0f;
+  pid->F = 0.0f;
+  pid->sum = 0.0f;
+  pid->previous_sp = 0.0f;
   pid->previous_in = 0.0f;
   pid->integral_err = 0.0f;
 }
