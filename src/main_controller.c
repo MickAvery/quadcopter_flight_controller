@@ -246,6 +246,9 @@ THD_FUNCTION(mainControllerThread, arg)
         static float accel_zero_g_avg[IMU_DATA_AXES]   = {0.0f};
         static float gyro_zero_rate_avg[IMU_DATA_AXES] = {0.0f};
 
+        /* don't drive motors */
+        memset(duty_cycles, 0, sizeof(duty_cycles));
+
         if(calib_numpoints_read < CALIBRATION_NUM_DATAPOINTS)
         {
           imuEngineGetData(&IMU_ENGINE, accel, IMU_ENGINE_ACCEL);

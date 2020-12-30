@@ -88,8 +88,9 @@ float pidCompute(pid_ctrl_handle_t* pid, float setpoint, float input)
 
   pid->previous_in = input;
 
+  // TODO:not implemented yet
   /*******************************
-   * F : TODO
+   * F
    *******************************/
   // float setpoint_delta = setpoint - pid->previous_sp;
   // pid->previous_sp = setpoint;
