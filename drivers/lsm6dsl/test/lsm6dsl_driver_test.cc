@@ -210,6 +210,53 @@ TEST(LSM6DSLReadTestGroup, lsm6dslReadingsNotReady)
   LONGS_EQUAL(LSM6DSL_DATA_NOT_AVAILABLE, lsm6dslRead(&lsm6dsl, &readings));
 }
 
+TEST_GROUP(LSM6DSLAccelOffsetTestGroup)
+{
+  lsm6dsl_handle_t lsm6dsl;
+  const lsm6dsl_config_t cfg = {
+    .i2c_drv   = &i2c,
+    .accel_odr = LSM6DSL_ACCEL_12_5_Hz,
+    .gyro_odr  = LSM6DSL_GYRO_12_5_Hz,
+    .accel_fs  = LSM6DSL_ACCEL_2G,
+    .gyro_fs   = LSM6DSL_GYRO_250DPS,
+    .gyro_lpf_en = true,
+    .gyro_lpf_bw = LSM6DSL_GYRO_LPF_BW_D
+  };
+
+  void setup()
+  {
+    mock().disable();
+    lsm6dslObjectInit(&lsm6dsl);
+    (void)lsm6dslStart(&lsm6dsl, &cfg);
+    mock().enable();
+  }
+
+  void teardown()
+  {
+    mock().checkExpectations();
+    mock().clear();
+  }
+};
+
+TEST(LSM6DSLAccelOffsetTestGroup, lsm6dslSetAccelOffsetsTest)
+{
+  mock().expectOneCall("i2cAcquireBus");
+
+  int8_t offsets[3U] = { -4, 0, 10 };
+
+  int8_t x_off[2] = { X_OFS_USR_ADDR, -offsets[0] }; // sensor internally adds contents of X_OFF register to X-axis readings
+  int8_t y_off[2] = { Y_OFS_USR_ADDR, -offsets[1] }; // sensor internally adds contents of Y_OFF register to Y-axis readings
+  int8_t z_off[2] = { Z_OFS_USR_ADDR,  offsets[2] }; // sensor internally subtracts contents of Z_OFF register to Z-axis readings
+
+  expect_i2c_write( x_off, 2, NULL, 0, LSM6DSL_I2C_SLAVEADDR, MSG_OK );
+  expect_i2c_write( y_off, 2, NULL, 0, LSM6DSL_I2C_SLAVEADDR, MSG_OK );
+  expect_i2c_write( z_off, 2, NULL, 0, LSM6DSL_I2C_SLAVEADDR, MSG_OK );
+
+  mock().expectOneCall("i2cReleaseBus");
+
+  LONGS_EQUAL(LSM6DSL_OK, lsm6dslSetAccelOffset(&lsm6dsl, offsets));
+}
+
 TEST_GROUP(LSM6DSLPassThroughTestGroup)
 {
   lsm6dsl_handle_t lsm6dsl;

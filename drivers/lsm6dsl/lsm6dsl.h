@@ -181,6 +181,17 @@ lsm6dsl_status_t lsm6dslStart(lsm6dsl_handle_t* handle, const lsm6dsl_config_t* 
 lsm6dsl_status_t lsm6dslRead(lsm6dsl_handle_t* handle, lsm6dsl_sensor_readings_t* vals);
 
 /**
+ * \brief Set accelerometer offsets to trim linear velocity readings
+ * 
+ * \param[in] handle - driver handle
+ * \param[in] offsets - offsets to save to sensor offset registers
+ *
+ * \return Driver status
+ * \retval LSM6DSL_OK if call successful
+ */
+lsm6dsl_status_t lsm6dslSetAccelOffset(lsm6dsl_handle_t* handle, int8_t offsets[3U]);
+
+/**
  * \brief Enable I2C passthrough to allow host MCU to communicate with external magnetometer
  *
  * \param[in] handle - LSM6DSL handle

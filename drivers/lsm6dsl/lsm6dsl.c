@@ -223,6 +223,44 @@ lsm6dsl_status_t lsm6dslRead(lsm6dsl_handle_t* handle, lsm6dsl_sensor_readings_t
 }
 
 /**
+ * \brief Set accelerometer offsets to trim linear velocity readings
+ * 
+ * \param[in] handle - driver handle
+ * \param[in] offsets - offsets to save to sensor offset registers
+ *
+ * \return Driver status
+ * \retval LSM6DSL_OK if call successful
+ */
+lsm6dsl_status_t lsm6dslSetAccelOffset(lsm6dsl_handle_t* handle, int8_t offsets[3U])
+{
+  osalDbgCheck((handle != NULL) && (offsets != NULL));
+  osalDbgAssert(handle->state == LSM6DSL_STATE_RUNNING, "lsm6dslRead called at invalid state");
+
+  lsm6dsl_status_t ret = LSM6DSL_SERIAL_ERROR;
+  I2CDriver* i2c = handle->cfg->i2c_drv;
+
+  i2cAcquireBus(i2c);
+
+  /* sensor internally adds contents of X_OFS and Y_OFS to X and Y readings */
+  offsets[0] = -offsets[0];
+  offsets[1] = -offsets[1];
+
+  if(reg_write(handle, X_OFS_USR_ADDR, offsets[0]) != MSG_OK) {
+    /* I2C write failed */
+  } else if(reg_write(handle, Y_OFS_USR_ADDR, offsets[1]) != MSG_OK) {
+    /* I2C write failed */
+  } else if(reg_write(handle, Z_OFS_USR_ADDR, offsets[2]) != MSG_OK) {
+    /* I2C write failed */
+  } else {
+    ret = LSM6DSL_OK;
+  }
+
+  i2cReleaseBus(i2c);
+
+  return ret;
+}
+
+/**
  * \brief Enable I2C passthrough to allow host MCU to communicate with external magnetometer
  *
  * \param[in] handle - LSM6DSL handle
