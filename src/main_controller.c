@@ -398,13 +398,13 @@ THD_FUNCTION(mainControllerThread, arg)
           /* set duty cycle */
           duty_cycles[i] = (uint32_t)motor_output;
 
-          chprintf(
-            (BaseSequentialStream*)&SD4,
-            "%d = %3d\t", i, motor_output/100);
+          // chprintf(
+            // (BaseSequentialStream*)&SD4,
+            // "%d = %3d\t", i, motor_output/100);
         }
-        chprintf(
-          (BaseSequentialStream*)&SD4,
-          "range = %0.2f\n", motor_range);
+        // chprintf(
+          // (BaseSequentialStream*)&SD4,
+          // "range = %0.2f\n", motor_range);
 
         /* Throttle stick low, quad grounded */
         if(throttle_pcnt < THROTTLE_MIN)

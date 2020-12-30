@@ -35,7 +35,7 @@ static iis2mdc_handle_t iis2mdc;
 static const lsm6dsl_config_t lsm6dsl_cfg =
 {
   .i2c_drv     = &I2CD2,
-  .accel_odr   = LSM6DSL_ACCEL_3_33_KHz,
+  .accel_odr   = LSM6DSL_ACCEL_208_Hz,
   .gyro_odr    = LSM6DSL_GYRO_104_Hz,
   .accel_fs    = LSM6DSL_ACCEL_8G,
   .gyro_fs     = LSM6DSL_GYRO_500DPS,
@@ -307,4 +307,5 @@ void imuEngineZeroGCalibrate(imu_engine_handle_t* handle, float lin_velocity_off
     accel_offsets[i] = (int8_t)(lin_velocity_offsets[i] / ACCEL_OFF_WEIGHT);
 
   /* set offsets in sensor */
+  (void)lsm6dslSetAccelOffset(&lsm6dsl, accel_offsets);
 }
