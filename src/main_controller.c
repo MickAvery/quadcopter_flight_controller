@@ -28,7 +28,8 @@ typedef enum
 {
   UNARMED = 0, /*!< multirotor is unarmed, must flight arming switch */
   ARMED,       /*!< multirotor is armed, ready for liftoff */
-  FLYING       /*!< multirotor is flying, PID loops running */
+  FLYING,      /*!< multirotor is flying, PID loops running */
+  CALIBRATING  /*!< calibrating accelerometer and gyroscope */
 } fc_states_t;
 
 /* TODO: maybe put these in a config file? */
@@ -130,8 +131,8 @@ static float calculate_setpoint_rate(float rc_setpoint)
 
   /* RC Rates */
   float rc_rate = RC_RATE;
-  if (rc_rate > 2.0f)
-    rc_rate += RC_RATE_INCREMENTAL * (rc_rate - 2.0f);
+  // if (rc_rate > 2.0f)
+  //   rc_rate += RC_RATE_INCREMENTAL * (rc_rate - 2.0f);
 
   float angle_rate = 200.0f * rc_rate * rc_setpoint;
 
@@ -140,6 +141,25 @@ static float calculate_setpoint_rate(float rc_setpoint)
   angle_rate *= rc_superfactor;
 
   return angle_rate;
+}
+
+/**
+ * \notapi
+ * \brief Detect rising edge of calibration switch signal
+ * \param calib_switch Position of calibration switch
+ */
+static bool calibration_request_detected(uint32_t calib_switch)
+{
+  static uint32_t calib_switch_prev = 0U;
+  bool ret = false;
+
+  /* if current is above 50% while previous is below 50% */
+  if( (calib_switch > 5000) && (calib_switch_prev < 5000) )
+    ret = true;
+
+  calib_switch_prev = calib_switch;
+
+  return ret;
 }
 
 /**
@@ -170,6 +190,7 @@ THD_FUNCTION(mainControllerThread, arg)
 
     radio_tx_rx_state_t rc_state = radioTxRxGetState(&RADIO_TXRX);
     int32_t arm_switch = channels[RADIO_TXRX_AUXA];
+    uint32_t calib_switch = channels[RADIO_TXRX_AUXB];
     int32_t throttle_pcnt = channels[RADIO_TXRX_THROTTLE];
     float throttle_pcnt_f = (float)throttle_pcnt / 10000.0f;
     float yaw_rc_sp = RADIO_TXRX.rc_deflections[RADIO_TXRX_YAW];
@@ -196,6 +217,26 @@ THD_FUNCTION(mainControllerThread, arg)
             "UNARMED -> ARMED\n");
         }
 
+        /*
+         * Calibration request tied to SWB.
+         * Request granted only once after switch is flipped on (i.e. on "rising edge" of SWB channel).
+         * For repeat calibration requests, flip SWB switch off and on again
+         */
+        if(calibration_request_detected(calib_switch))
+        {
+          flight_state = CALIBRATING;
+          chprintf(
+            (BaseSequentialStream*)&SD4,
+            "UNARMED -> CALIBRATING\n");
+        }
+
+        break;
+
+      case CALIBRATING:
+        flight_state = UNARMED;
+        chprintf(
+          (BaseSequentialStream*)&SD4,
+          "CALIBRATING -> UNARMED\n");
         break;
 
       case ARMED:
@@ -312,13 +353,13 @@ THD_FUNCTION(mainControllerThread, arg)
           /* set duty cycle */
           duty_cycles[i] = (uint32_t)motor_output;
 
-          // chprintf(
-          //   (BaseSequentialStream*)&SD4,
-          //   "%d = %3d\t", i, motor_output/100);
+          chprintf(
+            (BaseSequentialStream*)&SD4,
+            "%d = %3d\t", i, motor_output/100);
         }
-        // chprintf(
-        //   (BaseSequentialStream*)&SD4,
-        //   "range = %0.2f\n", motor_range);
+        chprintf(
+          (BaseSequentialStream*)&SD4,
+          "range = %0.2f\n", motor_range);
 
         /* Throttle stick low, quad grounded */
         if(throttle_pcnt < THROTTLE_MIN)

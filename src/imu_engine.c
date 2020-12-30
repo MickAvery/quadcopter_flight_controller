@@ -31,6 +31,7 @@ imu_engine_handle_t IMU_ENGINE;
 static lsm6dsl_handle_t lsm6dsl;
 static iis2mdc_handle_t iis2mdc;
 
+/* TODO: maybe place these in config file? */
 static const lsm6dsl_config_t lsm6dsl_cfg =
 {
   .i2c_drv     = &I2CD2,
@@ -42,6 +43,7 @@ static const lsm6dsl_config_t lsm6dsl_cfg =
   .gyro_lpf_bw = LSM6DSL_GYRO_LPF_BW_D
 };
 
+/* TODO: maybe place these in config file? */
 static const iis2mdc_config_t iis2mdc_cfg =
 {
   &I2CD2,
@@ -124,7 +126,7 @@ THD_FUNCTION(imuEngineThread, arg)
         // float pitch_acc = atan2f(readings.acc_y, readings.acc_z) * 180.0f / M_PI;
 
         /* apply complementary filter */
-        /* TODO: magic numbers */
+        /* TODO: config file, magic numbers */
         // handle->euler_angles[IMU_ENGINE_ROLL] = (roll_gyro * 0.55f) + (roll_acc * 0.45f);
         // handle->euler_angles[IMU_ENGINE_PITCH] = (pitch_gyro * 0.98f) + (pitch_acc * 0.02f);
         handle->euler_angles[IMU_ENGINE_ROLL] = atan2f(readings.acc_x, readings.acc_z) * 180.0f / M_PI; /* roll */
