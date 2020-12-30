@@ -104,9 +104,9 @@ THD_FUNCTION(imuEngineThread, arg)
       handle->accel_data[IMU_DATA_Y] = readings.acc_y;
       handle->accel_data[IMU_DATA_Z] = readings.acc_z;
 
-      handle->gyro_data[IMU_DATA_X] = readings.gyro_x;
-      handle->gyro_data[IMU_DATA_Y] = readings.gyro_y;
-      handle->gyro_data[IMU_DATA_Z] = readings.gyro_z;
+      handle->gyro_data[IMU_DATA_X] = readings.gyro_x - handle->gyro_offset[IMU_DATA_X];
+      handle->gyro_data[IMU_DATA_Y] = readings.gyro_y - handle->gyro_offset[IMU_DATA_Y];
+      handle->gyro_data[IMU_DATA_Z] = readings.gyro_z - handle->gyro_offset[IMU_DATA_Z];
 
       handle->mag_data[IMU_DATA_X] = mag_readings.mag_x;
       handle->mag_data[IMU_DATA_Y] = mag_readings.mag_y;
@@ -179,6 +179,10 @@ void imuEngineInit(imu_engine_handle_t* handle)
   } else {
 
     osalMutexObjectInit(&handle->lock);
+
+    for(size_t i = 0 ; i < IMU_DATA_AXES ; i++)
+      handle->gyro_offset[i] = 0.0f;
+
     handle->state = IMU_ENGINE_RUNNABLE;
 
   }
@@ -268,4 +272,39 @@ imu_engine_status_t imuEngineMagCalibrate(imu_engine_handle_t* handle, float off
   }
 
   return ret;
+}
+
+/**
+ * \brief Set angular rate offsets at zero-rate, these will be subtracted from angular rates read from sensor
+ * \param[in] handle - IMU Engine handle
+ * \param[in] ang_rate_offsets - offsets to apply to each axis
+ */
+void imuEngineZeroRateCalibrate(imu_engine_handle_t* handle, float ang_rate_offsets[IMU_DATA_AXES])
+{
+  osalDbgCheck(handle != NULL);
+  osalDbgCheck(handle->state == IMU_ENGINE_RUNNING);
+  osalDbgCheck(ang_rate_offsets != NULL);
+
+  for(size_t i = 0 ; i < IMU_DATA_AXES ; i++)
+    handle->gyro_offset[i] = ang_rate_offsets[i];
+}
+
+/**
+ * \brief Set linear velocity offsets at zero-rate
+ * \note These offsets will be stored directly to the sensors for on-chip offsetting 
+ * \param[in] handle - IMU Engine handle
+ * \param[in] lin_velocity_offsets - offsets to apply to each axis, in units of mg!
+ */
+void imuEngineZeroGCalibrate(imu_engine_handle_t* handle, float lin_velocity_offsets[IMU_DATA_AXES])
+{
+  osalDbgCheck(handle != NULL);
+  osalDbgCheck(handle->state == IMU_ENGINE_RUNNING);
+  osalDbgCheck(lin_velocity_offsets != NULL);
+
+  int8_t accel_offsets[IMU_DATA_AXES] = {0};
+
+  for(size_t i = 0 ; i < IMU_DATA_AXES ; i++)
+    accel_offsets[i] = (int8_t)(lin_velocity_offsets[i] / ACCEL_OFF_WEIGHT);
+
+  /* set offsets in sensor */
 }

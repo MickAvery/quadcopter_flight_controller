@@ -13,6 +13,8 @@
 
 #include "hal.h"
 
+#define ACCEL_OFF_WEIGHT 0.9765625f /*!< Accel offset weight in mg/LSB */
+
 typedef enum
 {
   IMU_DATA_X = 0,
@@ -54,11 +56,12 @@ typedef enum
 
 typedef struct
 {
-  volatile imu_engine_state_t state;
-  volatile float accel_data[3U];
-  volatile float gyro_data[3U];
-  volatile float mag_data[3U];
-  volatile float euler_angles[3U];
+  volatile imu_engine_state_t state;          /**< IMU engine state */
+  volatile float accel_data[IMU_DATA_AXES];   /**< linear acceleration from accelerometer */
+  volatile float gyro_data[IMU_DATA_AXES];    /**< angular velocity from gyroscope */
+  volatile float mag_data[IMU_DATA_AXES];     /**< magnetometer data */
+  volatile float euler_angles[IMU_DATA_AXES]; /**< quadcopter attitude */
+  volatile float gyro_offset[IMU_DATA_AXES];  /**< angular velocity offset at zero-rate */
 
   mutex_t lock;
 } imu_engine_handle_t;
@@ -96,5 +99,20 @@ void imuEngineGetData(imu_engine_handle_t* handle, float data[IMU_DATA_AXES], im
  * \return IMU_ENGINE_OK if successful
  */
 imu_engine_status_t imuEngineMagCalibrate(imu_engine_handle_t* handle, float offsets[IMU_DATA_AXES]);
+
+/**
+ * \brief Set angular rate offsets at zero-rate, these will be subtracted from angular rates read from sensor
+ * \param[in] handle - IMU Engine handle
+ * \param[in] ang_rate_offsets - offsets to apply to each axis
+ */
+void imuEngineZeroRateCalibrate(imu_engine_handle_t* handle, float ang_rate_offsets[IMU_DATA_AXES]);
+
+/**
+ * \brief Set linear velocity offsets at zero-rate
+ * \note These offsets will be stored directly to the sensors for on-chip offsetting 
+ * \param[in] handle - IMU Engine handle
+ * \param[in] lin_velocity_offsets - offsets to apply to each axis
+ */
+void imuEngineZeroGCalibrate(imu_engine_handle_t* handle, float lin_velocity_offsets[IMU_DATA_AXES]);
 
 #endif /* IMU_ENGINE_H */

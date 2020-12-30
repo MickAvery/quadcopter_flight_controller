@@ -37,6 +37,16 @@ typedef enum
 #define BODY_TILT_MAX 45.0f
 #define PID_ITERM_MAX 400.0f
 
+/* TODO: to config file */
+#define RC_EXPO             0.0f
+#define RC_RATE             0.80f
+#define SUPER_RATE          0.65f
+#define RC_RATE_INCREMENTAL 14.54f
+#define PID_SUM_LIMIT       500.0f
+#define power3(x) (x*x*x)
+
+#define CALIBRATION_NUM_DATAPOINTS 256U /*!< When calibrating, read these many datapoints to compute average */
+
 /**
  * define PID controllers
  */
@@ -109,13 +119,6 @@ static int32_t constrain(int32_t in, int32_t min, int32_t max)
   return in;
 }
 
-#define RC_EXPO             0.0f
-#define RC_RATE             0.80f
-#define SUPER_RATE          0.65f
-#define RC_RATE_INCREMENTAL 14.54f
-#define PID_SUM_LIMIT       500.0f
-#define power3(x) (x*x*x)
-
 /**
  * @brief 
  * 
@@ -173,7 +176,10 @@ THD_FUNCTION(mainControllerThread, arg)
   (void)arg;
 
   /* keep track of FC state */
-  static fc_states_t flight_state = UNARMED;
+  fc_states_t flight_state = UNARMED;
+
+  /* if calibrating, keep track of datapoints read */
+  size_t calib_numpoints_read = 0;
 
   /* wait for first frame to be parsed */
   chThdSleepMilliseconds(RADIO_PPM_LENGTH_MS);
@@ -194,6 +200,9 @@ THD_FUNCTION(mainControllerThread, arg)
     int32_t throttle_pcnt = channels[RADIO_TXRX_THROTTLE];
     float throttle_pcnt_f = (float)throttle_pcnt / 10000.0f;
     float yaw_rc_sp = RADIO_TXRX.rc_deflections[RADIO_TXRX_YAW];
+    float attitude[IMU_DATA_AXES] = {0.0f};
+    float accel[IMU_DATA_AXES] = {0.0f};
+    float gyro[IMU_DATA_AXES] = {0.0f};
 
     /**
      * Flight state machine
@@ -233,11 +242,49 @@ THD_FUNCTION(mainControllerThread, arg)
         break;
 
       case CALIBRATING:
-        flight_state = UNARMED;
-        chprintf(
-          (BaseSequentialStream*)&SD4,
-          "CALIBRATING -> UNARMED\n");
+      {
+        static float accel_zero_g_avg[IMU_DATA_AXES]   = {0.0f};
+        static float gyro_zero_rate_avg[IMU_DATA_AXES] = {0.0f};
+
+        if(calib_numpoints_read < CALIBRATION_NUM_DATAPOINTS)
+        {
+          imuEngineGetData(&IMU_ENGINE, accel, IMU_ENGINE_ACCEL);
+          imuEngineGetData(&IMU_ENGINE, gyro, IMU_ENGINE_GYRO);
+
+          for(size_t i = 0 ; i < IMU_DATA_AXES ; i++)
+          {
+            accel_zero_g_avg[i]   += accel[i];
+            gyro_zero_rate_avg[i] += gyro[i];
+          }
+
+          calib_numpoints_read++;
+        }
+        else
+        {
+          /* calculate averages, subtract setpoint to get offsets */
+          for(size_t i = 0 ; i < IMU_DATA_AXES ; i++)
+          {
+            accel_zero_g_avg[i]   /= (float)CALIBRATION_NUM_DATAPOINTS;
+            gyro_zero_rate_avg[i] /= (float)CALIBRATION_NUM_DATAPOINTS;
+
+            if(i == IMU_ENGINE_YAW)
+              accel_zero_g_avg[IMU_ENGINE_YAW] -= 1000.0f; /* at zero-g, YAW is at 1g */
+          }
+
+          /* set calibration offsets */
+          imuEngineZeroRateCalibrate(&IMU_ENGINE, gyro_zero_rate_avg);
+          imuEngineZeroGCalibrate(&IMU_ENGINE, accel_zero_g_avg);
+
+          /* reset counter */
+          calib_numpoints_read = 0;
+
+          flight_state = UNARMED;
+          chprintf(
+            (BaseSequentialStream*)&SD4,
+            "CALIBRATING -> UNARMED\n");
+        }
         break;
+      }
 
       case ARMED:
         /* don't drive motors */
@@ -270,8 +317,6 @@ THD_FUNCTION(mainControllerThread, arg)
       case FLYING:
       {
         /* read imu data */
-        float attitude[IMU_DATA_AXES] = {0.0f};
-        float gyro[IMU_DATA_AXES] = {0.0f};
         imuEngineGetData(&IMU_ENGINE, attitude, IMU_ENGINE_EULER);
         imuEngineGetData(&IMU_ENGINE, gyro, IMU_ENGINE_GYRO);
 
@@ -289,9 +334,9 @@ THD_FUNCTION(mainControllerThread, arg)
         target_pitch_angle *= 5.0f; /* TODO: magic numbers */
 
         /* run iteration of PID loop */
-        float roll  = pidCompute(&roll_pid,  target_roll_angle,  gyro[IMU_ENGINE_ROLL]  /1000.0f);
-        float pitch = pidCompute(&pitch_pid, target_pitch_angle, gyro[IMU_ENGINE_PITCH] /1000.0f);
-        float yaw   = pidCompute(&yaw_pid,   target_yaw_rate,    gyro[IMU_ENGINE_YAW]   /1000.0f);
+        float roll  = pidCompute(&roll_pid,  target_roll_angle,  gyro[IMU_ENGINE_ROLL]  / 1000.0f);
+        float pitch = pidCompute(&pitch_pid, target_pitch_angle, gyro[IMU_ENGINE_PITCH] / 1000.0f);
+        float yaw   = pidCompute(&yaw_pid,   target_yaw_rate,    gyro[IMU_ENGINE_YAW]   / 1000.0f);
 
         /* limit the PID sums */
         roll  = constrainf(roll,  -PID_SUM_LIMIT, PID_SUM_LIMIT) / 1000.0f;
@@ -381,7 +426,10 @@ THD_FUNCTION(mainControllerThread, arg)
     motorDriverSetDutyCycles(&MOTOR_DRIVER, duty_cycles);
 
     /* TODO: dont hardcode this value, put in config file */
-    chThdSleepMilliseconds(1U);
+    if(flight_state == CALIBRATING)
+      chThdSleepMicroseconds(301); /* when calibrating, match speed of IMU engine */
+    else
+      chThdSleepMilliseconds(1U);
   }
 }
 
