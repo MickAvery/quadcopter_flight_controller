@@ -16,6 +16,7 @@
 #include "pid.h"
 #include "chprintf.h"
 #include "fcconf.h"
+#include "utils.h"
 
 /**
  * Global main controller handle
@@ -49,12 +50,11 @@ static float super_rate = (float)SUPER_RATE / 100.0f;
 static float pid_sum_limit = (float)PID_SUM_LIMIT;
 
 /* Controller loop periods based on state */
-static uint32_t imu_sampling_period_us = (uint32_t)(1.0f / ((float)IMU_ENGINE_SAMPLING_RATE) / (1000.0f*1000.0f));
+static uint32_t imu_sampling_period_us = (uint32_t)(1.0f / ((float)IMU_ENGINE_SAMPLING_RATE / (1000.0f*1000.0f)));
 static uint32_t pid_period_us = (uint32_t)(1.0f / ((float)PID_FREQUENCY / (1000.0f*1000.0f)));
 
-#define power3(x) (x*x*x) // TODO: to library
-
-#define CALIBRATION_NUM_DATAPOINTS 256U /*!< When calibrating, read these many datapoints to compute average */
+/* When calibrating, read these many datapoints to compute average */
+#define CALIBRATION_NUM_DATAPOINTS 256U
 
 /**
  * Roll PID configs
@@ -94,42 +94,6 @@ static const pid_cfg_t yaw_pid_cfg =
   .dT        = 1.0f / (float)PID_FREQUENCY,
   .iterm_max = (float)PID_YAW_ITERM_MAX /* I-term max for saturation */
 };
-
-// TODO: Put into library!
-/**
- * @brief Set constraint on floating-point input, saturate if below or above minimum or maximum respectively
- * 
- * @param in  - Input to constrain
- * @param min - Minimum
- * @param max - Maximum
- * @return float
- */
-static float constrainf(float in, float min, float max)
-{
-  if(in < min)
-    return min;
-  if(in > max)
-    return max;
-  return in;
-}
-
-// TODO: Put into library!
-/**
- * @brief Set constraint on integer input, saturate if below or above minimum or maximum respectively
- * 
- * @param in 
- * @param min 
- * @param max 
- * @return int32_t 
- */
-static int32_t constrain(int32_t in, int32_t min, int32_t max)
-{
-  if(in < min)
-    return min;
-  if(in > max)
-    return max;
-  return in;
-}
 
 /**
  * \notapi

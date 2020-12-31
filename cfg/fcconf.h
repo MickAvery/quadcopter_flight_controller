@@ -1,7 +1,7 @@
 /**
- * \file fcconf.h
+ * \file   fcconf.h
  * \author Mav Cuyugan (mav.cuyugan@gmail.com)
- * \brief 
+ * \brief  System-wide flight controller configurations
  */
 
 #ifndef FCCONF_H

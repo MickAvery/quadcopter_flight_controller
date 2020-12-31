@@ -122,6 +122,7 @@ CSRC = $(ALLCSRC) \
        src/radio_tx_rx.c \
        src/motor_driver.c \
        src/main_controller.c \
+       src/utils.c \
        src/pid.c \
        main.c
 

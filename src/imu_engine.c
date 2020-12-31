@@ -24,7 +24,7 @@
 #endif
 
 /* Sampling period based on configured sampling frequency */
-static uint32_t sampling_period_us = (uint32_t)(1.0f / ((float)IMU_ENGINE_SAMPLING_RATE) / (1000.0f*1000.0f));
+static uint32_t sampling_period_us = (uint32_t)(1.0f / ((float)IMU_ENGINE_SAMPLING_RATE / (1000.0f*1000.0f)));
 
 /**
  * Global IMU Engine handler

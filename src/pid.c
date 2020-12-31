@@ -9,23 +9,7 @@
 #include <stdbool.h>
 #include "pid.h"
 #include "hal.h"
-
-/**
- * @brief Set constraint on input, saturate if below or above minimum or maximum respectively
- * 
- * @param in  - Input to constrain
- * @param min - Minimum
- * @param max - Maximum
- * @return float
- */
-static float constrainf(float in, float min, float max)
-{
-  if(in < min)
-    return min;
-  if(in > max)
-    return max;
-  return in;
-}
+#include "utils.h"
 
 /**
  * \brief Initialize the PID controller
