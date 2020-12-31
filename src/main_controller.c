@@ -33,7 +33,7 @@ typedef enum
 } fc_states_t;
 
 /* TODO: maybe put these in a config file? */
-#define THROTTLE_MIN  1000 /* 10% */
+#define THROTTLE_MIN  200 /* /100 = % */
 #define BODY_TILT_MAX 45.0f
 #define PID_ITERM_MAX 400.0f
 
@@ -54,7 +54,7 @@ static pid_ctrl_handle_t roll_pid;
 static const pid_cfg_t roll_pid_cfg =
 {
   /* PID constants */
-  3.0f, 5.5f, 4.0f, 0.0f, // TODO: coefficients, config file!
+  10.0f, 0.0f, 0.0f, 0.0f, // TODO: coefficients, config file!
 
   1e-3f,                  // TODO: frequency, config file!
 
@@ -76,7 +76,7 @@ static pid_ctrl_handle_t yaw_pid;
 static const pid_cfg_t yaw_pid_cfg =
 {
   /* PID constants */
-  3.0f, 5.5f, 4.0f, 0.0f, // TODO: coefficients, config file!
+  10.0f, 0.0f, 0.0f, 0.0f, // TODO: coefficients, config file!
 
   1e-3f,                  // TODO: frequency, config file!
 
@@ -200,8 +200,6 @@ THD_FUNCTION(mainControllerThread, arg)
     int32_t throttle_pcnt = channels[RADIO_TXRX_THROTTLE];
     float throttle_pcnt_f = (float)throttle_pcnt / 10000.0f;
     float yaw_rc_sp = RADIO_TXRX.rc_deflections[RADIO_TXRX_YAW];
-    float attitude[IMU_DATA_AXES] = {0.0f};
-    float accel[IMU_DATA_AXES] = {0.0f};
     float gyro[IMU_DATA_AXES] = {0.0f};
 
     /**
@@ -251,6 +249,8 @@ THD_FUNCTION(mainControllerThread, arg)
 
         if(calib_numpoints_read < CALIBRATION_NUM_DATAPOINTS)
         {
+          float accel[IMU_DATA_AXES] = {0.0f};
+
           imuEngineGetData(&IMU_ENGINE, accel, IMU_ENGINE_ACCEL);
           imuEngineGetData(&IMU_ENGINE, gyro, IMU_ENGINE_GYRO);
 
@@ -319,6 +319,8 @@ THD_FUNCTION(mainControllerThread, arg)
 
       case FLYING:
       {
+        float attitude[IMU_DATA_AXES] = {0.0f};
+
         /* read imu data */
         imuEngineGetData(&IMU_ENGINE, attitude, IMU_ENGINE_EULER);
         imuEngineGetData(&IMU_ENGINE, gyro, IMU_ENGINE_GYRO);
