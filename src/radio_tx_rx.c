@@ -8,7 +8,7 @@
 #include <string.h>
 
 #include "radio_tx_rx.h"
-#include "pinconf.h"
+#include "fcconf.h"
 
 /* global handle for Radio Transceiver */
 radio_tx_rx_handle_t RADIO_TXRX;

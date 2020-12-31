@@ -6,7 +6,7 @@
  */
 
 #include "motor_driver.h"
-#include "pinconf.h"
+#include "fcconf.h"
 
 /**
  * Global motor driver handle

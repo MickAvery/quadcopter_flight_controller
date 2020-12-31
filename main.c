@@ -15,7 +15,7 @@
 #include "radio_tx_rx.h"
 #include "motor_driver.h"
 #include "main_controller.h"
-#include "pinconf.h"
+#include "fcconf.h"
 
 #define SHELL_WORKING_AREA_SIZE THD_WORKING_AREA_SIZE(2048)
 
