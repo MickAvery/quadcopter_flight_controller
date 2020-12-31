@@ -13,18 +13,22 @@
  * 
  ********************************************************************/
 
-#define IMU_ENGINE_SAMPLING_RATE
+/* IMU Engine sampling rate in Hz */
+#define IMU_ENGINE_SAMPLING_RATE 3300
 
-#define ACCELEROMETER_ODR       LSM6DSL_ACCEL_208_Hz
-#define ACCELEROMETER_FULLSCALE LSM6DSL_ACCEL_8G
+/* Accelerometer configurations */
+#define ACCELEROMETER_ODR        LSM6DSL_ACCEL_208_Hz
+#define ACCELEROMETER_FULLSCALE  LSM6DSL_ACCEL_8G
 
-#define GYROSCOPE_ODR           LSM6DSL_GYRO_104_Hz
-#define GYROSCOPE_FULLSCALE     LSM6DSL_GYRO_500DPS
-#define GYROSCOPE_LPF_EN        false
-#define GYROSCOPE_LPF_BW        LSM6DSL_GYRO_LPF_BW_D
+/* Gyroscope configurations */
+#define GYROSCOPE_ODR            LSM6DSL_GYRO_104_Hz
+#define GYROSCOPE_FULLSCALE      LSM6DSL_GYRO_500DPS
+#define GYROSCOPE_LPF_EN         false
+#define GYROSCOPE_LPF_BW         LSM6DSL_GYRO_LPF_BW_D
 
-#define MAGNETOMETER_ENABLE     FALSE
-#define MAGNETOMETER_ODR        IIS2MDC_ODR_100_Hz
+/* Magnetometer configurations */
+#define MAGNETOMETER_ENABLE      FALSE
+#define MAGNETOMETER_ODR         IIS2MDC_ODR_100_Hz
 
 /********************************************************************
  * 

@@ -23,6 +23,9 @@
 #define M_PI 3.14159265358979323846f
 #endif
 
+/* Sampling period based on configured sampling frequency */
+static uint32_t sampling_period_us = (uint32_t)(1.0f / ((float)IMU_ENGINE_SAMPLING_RATE) / (1000.0f*1000.0f));
+
 /**
  * Global IMU Engine handler
  */
@@ -166,8 +169,7 @@ THD_FUNCTION(imuEngineThread, arg)
 
       osalMutexUnlock(&handle->lock);
 
-      /* TODO: dont hardcode this value, put in config file */
-      chThdSleepMicroseconds(301); /* Matches sampling period (rounded to nearest integer) */
+      chThdSleepMicroseconds(sampling_period_us);
     }
   }
 }

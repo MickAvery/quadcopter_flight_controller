@@ -33,6 +33,7 @@ typedef enum
   CALIBRATING  /*!< calibrating accelerometer and gyroscope */
 } fc_states_t;
 
+/* max allowable body tilt about roll and pitch */
 static float body_tilt_max = (float)BODY_TILT_MAX;
 
 /* PID level strength, when using betaflight ANGLE mode */
@@ -44,14 +45,19 @@ static float rc_rate    = (float)RC_RATE / 100.0f;
 static float super_rate = (float)SUPER_RATE / 100.0f;
 // static float rc_rate_incremental = (float)RC_RATE_INCREMENTAL / 100.0f;
 
+/* max PID sums for driving motors */
 static float pid_sum_limit = (float)PID_SUM_LIMIT;
+
+/* Controller loop periods based on state */
+static uint32_t imu_sampling_period_us = (uint32_t)(1.0f / ((float)IMU_ENGINE_SAMPLING_RATE) / (1000.0f*1000.0f));
+static uint32_t pid_period_us = (uint32_t)(1.0f / ((float)PID_FREQUENCY / (1000.0f*1000.0f)));
 
 #define power3(x) (x*x*x) // TODO: to library
 
 #define CALIBRATION_NUM_DATAPOINTS 256U /*!< When calibrating, read these many datapoints to compute average */
 
 /**
- * define PID controllers
+ * Roll PID configs
  */
 static pid_ctrl_handle_t roll_pid;
 static const pid_cfg_t roll_pid_cfg =
@@ -63,6 +69,9 @@ static const pid_cfg_t roll_pid_cfg =
   .iterm_max = (float)PID_ROLL_ITERM_MAX /* I-term max for saturation */
 };
 
+/**
+ * Pitch PID configs
+ */
 static pid_ctrl_handle_t pitch_pid;
 static const pid_cfg_t pitch_pid_cfg =
 {
@@ -73,6 +82,9 @@ static const pid_cfg_t pitch_pid_cfg =
   .iterm_max = (float)PID_PITCH_ITERM_MAX /* I-term max for saturation */
 };
 
+/**
+ * Yaw PID configs
+ */
 static pid_ctrl_handle_t yaw_pid;
 static const pid_cfg_t yaw_pid_cfg =
 {
@@ -428,11 +440,10 @@ THD_FUNCTION(mainControllerThread, arg)
     /* drive motors with appropriate duty cycles */
     motorDriverSetDutyCycles(&MOTOR_DRIVER, duty_cycles);
 
-    /* TODO: dont hardcode this value, put in config file */
     if(flight_state == CALIBRATING)
-      chThdSleepMicroseconds(301); /* when calibrating, match speed of IMU engine */
+      chThdSleepMicroseconds(imu_sampling_period_us); /* when calibrating, match speed of IMU engine */
     else
-      chThdSleepMilliseconds(1U);
+      chThdSleepMicroseconds(pid_period_us);
   }
 }
 
