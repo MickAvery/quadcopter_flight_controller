@@ -12,7 +12,11 @@
 
 #include "imu_engine.h"
 #include "lsm6dsl.h"
+#include "fcconf.h"
+
+#if(MAGNETOMETER_ENABLE)
 #include "iis2mdc.h"
+#endif
 
 /* let's define PI */
 #ifndef M_PI
@@ -29,26 +33,29 @@ imu_engine_handle_t IMU_ENGINE;
  */
 
 static lsm6dsl_handle_t lsm6dsl;
-static iis2mdc_handle_t iis2mdc;
 
-/* TODO: maybe place these in config file? */
+#if(MAGNETOMETER_ENABLE)
+static iis2mdc_handle_t iis2mdc;
+#endif
+
 static const lsm6dsl_config_t lsm6dsl_cfg =
 {
   .i2c_drv     = &I2CD2,
-  .accel_odr   = LSM6DSL_ACCEL_208_Hz,
-  .gyro_odr    = LSM6DSL_GYRO_104_Hz,
-  .accel_fs    = LSM6DSL_ACCEL_8G,
-  .gyro_fs     = LSM6DSL_GYRO_500DPS,
-  .gyro_lpf_en = false,
-  .gyro_lpf_bw = LSM6DSL_GYRO_LPF_BW_D
+  .accel_odr   = ACCELEROMETER_ODR,
+  .gyro_odr    = GYROSCOPE_ODR,
+  .accel_fs    = ACCELEROMETER_FULLSCALE,
+  .gyro_fs     = GYROSCOPE_FULLSCALE,
+  .gyro_lpf_en = GYROSCOPE_LPF_EN,
+  .gyro_lpf_bw = GYROSCOPE_LPF_BW
 };
 
-/* TODO: maybe place these in config file? */
+#if(MAGNETOMETER_ENABLE)
 static const iis2mdc_config_t iis2mdc_cfg =
 {
   &I2CD2,
-  IIS2MDC_ODR_100_Hz
+  MAGNETOMETER_ODR
 };
+#endif /* MAGNETOMETER_ENABLE */
 
 /**
  * \notapi
@@ -82,14 +89,16 @@ THD_FUNCTION(imuEngineThread, arg)
   while(imuIsRunning(handle)) {
 
     lsm6dsl_sensor_readings_t readings;
-    iis2mdc_sensor_readings_t mag_readings;
 
     if(lsm6dslRead(&lsm6dsl, &readings) != LSM6DSL_OK) {
       /* failed to read accel and gyro data */
     } else {
 
+#if(MAGNETOMETER_ENABLE)
+      iis2mdc_sensor_readings_t mag_readings;
       /* read magnetometer data, doesn't matter if we succeed or not */
       (void)iis2mdcRead(&iis2mdc, &mag_readings);
+#endif /* MAGNETOMETER_ENABLE */
 
       /* euler angle measurements */
       /* https://engineering.stackexchange.com/questions/3348/calculating-pitch-yaw-and-roll-from-mag-acc-and-gyro-data */
@@ -108,9 +117,11 @@ THD_FUNCTION(imuEngineThread, arg)
       handle->gyro_data[IMU_DATA_Y] = readings.gyro_y - handle->gyro_offset[IMU_DATA_Y];
       handle->gyro_data[IMU_DATA_Z] = readings.gyro_z - handle->gyro_offset[IMU_DATA_Z];
 
+#if(MAGNETOMETER_ENABLE)
       handle->mag_data[IMU_DATA_X] = mag_readings.mag_x;
       handle->mag_data[IMU_DATA_Y] = mag_readings.mag_y;
       handle->mag_data[IMU_DATA_Z] = mag_readings.mag_z;
+#endif /* MAGNETOMETER_ENABLE */
 
       if(first_reading) {
         handle->euler_angles[IMU_ENGINE_ROLL] = atan2f(readings.acc_x, readings.acc_z) * 180.0f / M_PI; /* roll */
@@ -168,15 +179,22 @@ THD_FUNCTION(imuEngineThread, arg)
 void imuEngineInit(imu_engine_handle_t* handle)
 {
   lsm6dslObjectInit(&lsm6dsl);
+
+#if(MAGNETOMETER_ENABLE)
   iis2mdcObjectInit(&iis2mdc);
+#endif /* MAGNETOMETER_ENABLE */
 
   if(lsm6dslStart(&lsm6dsl, &lsm6dsl_cfg) != LSM6DSL_OK) {
     /* failed to start driver */
     chSysHalt("Failed to start IMUs");
-  } else if(iis2mdcStart(&iis2mdc, &iis2mdc_cfg) != IIS2MDC_STATUS_OK) {
+  }
+#if(MAGNETOMETER_ENABLE)
+  else if(iis2mdcStart(&iis2mdc, &iis2mdc_cfg) != IIS2MDC_STATUS_OK) {
     /* failed to start driver */
     chSysHalt("Failed to start IMUs");
-  } else {
+  }
+#endif /* MAGNETOMETER_ENABLE */
+  else {
 
     osalMutexObjectInit(&handle->lock);
 
@@ -265,11 +283,13 @@ imu_engine_status_t imuEngineMagCalibrate(imu_engine_handle_t* handle, float off
 
   imu_engine_status_t ret = IMU_ENGINE_ERROR;
 
+#if(MAGNETOMETER_ENABLE)
   if(iis2mdcCalibrate(&iis2mdc, offsets[0], offsets[1], offsets[2]) != IIS2MDC_STATUS_OK) {
     /* failed to calibrate mag */
   } else {
     ret = IMU_ENGINE_OK;
   }
+#endif /* MAGNETOMETER_ENABLE */
 
   return ret;
 }

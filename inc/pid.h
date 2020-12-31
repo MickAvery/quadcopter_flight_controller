@@ -8,6 +8,12 @@
 #ifndef PID_H
 #define PID_H
 
+/* Scaling factors for Pids for better tunable range in configurator.
+ * The scaling is based on legacy pid controller or previous float */
+#define PTERM_SCALE 0.032029f
+#define ITERM_SCALE 0.244381f
+#define DTERM_SCALE 0.000529f
+
 /**
  * PID configurations
  */
