@@ -10,6 +10,9 @@
 #ifndef MAIN_CONTROLLER_H
 #define MAIN_CONTROLLER_H
 
+#include <stdint.h>
+#include <stdbool.h>
+
 /**
  * Main controller states
  */
@@ -44,5 +47,14 @@ void mainControllerInit(main_ctrl_handle_t* handle);
  * \param[in] handle - Main Controller handle
  */
 void mainControllerStart(main_ctrl_handle_t* handle);
+
+/**
+ * If enable is true, request to short-circuit throttle input and motor output and bypass main controller.
+ * If false then disable throttle bypassing.
+ * \param[in] handle - Main Controller handle
+ * \param[in] enable - If true then enable bypassing, if false then disable bypassing
+ * \param[in] motor  - Motor number to bypass to. If equal to number of motors, bypass to all motors
+ */
+void mainControllerMotorBypass(main_ctrl_handle_t* handle, bool enable, uint32_t motor);
 
 #endif /* MAIN_CONTROLLER_H */

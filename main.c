@@ -218,21 +218,21 @@ static void motor_bypass(BaseSequentialStream* chp, int argc, char* argv[])
       }
       else if(strncmp(arg, "all", 3) == 0)
       {
-        chprintf(chp, "enable all\n");
+        mainControllerMotorBypass(&MAIN_CTRL, true, MOTOR_DRIVER_MOTORS);
       }
       else
       {
         uint32_t motor = (uint32_t)atoi(arg);
 
         if(motor < MOTOR_DRIVER_MOTORS)
-          chprintf(chp, "enable motor = %d\n", motor);
+          mainControllerMotorBypass(&MAIN_CTRL, true, motor);
         else
           invalid_arg = true;
       }
     }
     else if(strncmp(arg, "disable", 7) == 0)
     {
-      chprintf(chp, "disable\n");
+      mainControllerMotorBypass(&MAIN_CTRL, false, 0);
     }
     else
     {

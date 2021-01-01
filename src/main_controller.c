@@ -28,11 +28,16 @@ main_ctrl_handle_t MAIN_CTRL;
  */
 typedef enum
 {
-  UNARMED = 0, /*!< multirotor is unarmed, must flight arming switch */
-  ARMED,       /*!< multirotor is armed, ready for liftoff */
-  FLYING,      /*!< multirotor is flying, PID loops running */
-  CALIBRATING  /*!< calibrating accelerometer and gyroscope */
+  UNARMED = 0,    /*!< multirotor is unarmed, must flight arming switch */
+  ARMED,          /*!< multirotor is armed, ready for liftoff */
+  FLYING,         /*!< multirotor is flying, PID loops running */
+  CALIBRATING,    /*!< calibrating accelerometer and gyroscope */
+  MOTOR_BYPASSING /*!< rc inputs bypassing main controller and straight to motor output */
 } fc_states_t;
+
+/* if true, transition from UNARMED to MOTOR_BYPASSING */
+static bool bypass_requested = false;
+static uint32_t motor_bypassed = 0;
 
 /* max allowable body tilt about roll and pitch */
 static float body_tilt_max = (float)BODY_TILT_MAX;
@@ -198,8 +203,7 @@ THD_FUNCTION(mainControllerThread, arg)
           LOG_DEBUG("UNARMED -> ARMED\n");
         }
 
-        /*
-         * Calibration request tied to SWB.
+        /* Calibration request tied to SWB.
          * Request granted only once after switch is flipped on (i.e. on "rising edge" of SWB channel).
          * For repeat calibration requests, flip SWB switch off and on again
          */
@@ -207,6 +211,14 @@ THD_FUNCTION(mainControllerThread, arg)
         {
           flight_state = CALIBRATING;
           LOG_DEBUG("UNARMED -> CALIBRATING\n");
+        }
+
+        /* Bypass requested
+         */
+        if(bypass_requested)
+        {
+          flight_state = MOTOR_BYPASSING;
+          LOG_DEBUG("UNARMED -> MOTOR_BYPASSING\n");
         }
 
         break;
@@ -258,6 +270,27 @@ THD_FUNCTION(mainControllerThread, arg)
         }
         break;
       }
+
+      case MOTOR_BYPASSING:
+
+        memset(duty_cycles, 0, sizeof(duty_cycles));
+
+        if(motor_bypassed == MOTOR_DRIVER_MOTORS)
+        {
+          for(size_t i = 0 ; i < MOTOR_DRIVER_MOTORS ; i++)
+            duty_cycles[i] = throttle_pcnt;
+        }
+        else
+        {
+          duty_cycles[motor_bypassed] = throttle_pcnt;
+        }
+
+        if(!bypass_requested)
+        {
+          flight_state = UNARMED;
+          LOG_DEBUG("MOTOR_BYPASSING -> UNARMED\n");
+        }
+        break;
 
       case ARMED:
         /* don't drive motors */
@@ -421,4 +454,20 @@ void mainControllerStart(main_ctrl_handle_t* handle)
     NORMALPRIO,
     mainControllerThread,
     NULL);
+}
+
+/**
+ * If enable is true, request to short-circuit throttle input and motor output and bypass main controller.
+ * If false then disable throttle bypassing.
+ * \param[in] handle - Main Controller handle
+ * \param[in] enable - If true then enable bypassing, if false then disable bypassing
+ * \param[in] motor  - Motor number to bypass to. If equal to number of motors, bypass to all motors
+ */
+void mainControllerMotorBypass(main_ctrl_handle_t* handle, bool enable, uint32_t motor)
+{
+  osalDbgCheck(handle != NULL);
+  osalDbgCheck(handle->state == MAIN_CTRL_RUNNING);
+
+  bypass_requested = enable;
+  motor_bypassed = motor;
 }
