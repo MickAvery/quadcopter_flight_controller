@@ -55,6 +55,6 @@ void mainControllerStart(main_ctrl_handle_t* handle);
  * \param[in] enable - If true then enable bypassing, if false then disable bypassing
  * \param[in] motor  - Motor number to bypass to. If equal to number of motors, bypass to all motors
  */
-void mainControllerMotorBypass(main_ctrl_handle_t* handle, bool enable, uint32_t motor);
+void mainControllerThrottleBypass(main_ctrl_handle_t* handle, bool enable, uint32_t motor);
 
 #endif /* MAIN_CONTROLLER_H */

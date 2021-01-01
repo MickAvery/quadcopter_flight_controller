@@ -196,7 +196,7 @@ static void mag_calibrate(BaseSequentialStream* chp, int argc, char* argv[])
  * \brief Connect throttle input straight to ESC, bypassing the main controller.
  *        Useful for things like motor testing and ESC calibration.
  */
-static void motor_bypass(BaseSequentialStream* chp, int argc, char* argv[])
+static void throttle_bypass(BaseSequentialStream* chp, int argc, char* argv[])
 {
   bool invalid_arg = false;
 
@@ -218,21 +218,21 @@ static void motor_bypass(BaseSequentialStream* chp, int argc, char* argv[])
       }
       else if(strncmp(arg, "all", 3) == 0)
       {
-        mainControllerMotorBypass(&MAIN_CTRL, true, MOTOR_DRIVER_MOTORS);
+        mainControllerThrottleBypass(&MAIN_CTRL, true, MOTOR_DRIVER_MOTORS);
       }
       else
       {
         uint32_t motor = (uint32_t)atoi(arg);
 
         if(motor < MOTOR_DRIVER_MOTORS)
-          mainControllerMotorBypass(&MAIN_CTRL, true, motor);
+          mainControllerThrottleBypass(&MAIN_CTRL, true, motor);
         else
           invalid_arg = true;
       }
     }
     else if(strncmp(arg, "disable", 7) == 0)
     {
-      mainControllerMotorBypass(&MAIN_CTRL, false, 0);
+      mainControllerThrottleBypass(&MAIN_CTRL, false, 0);
     }
     else
     {
@@ -244,7 +244,7 @@ static void motor_bypass(BaseSequentialStream* chp, int argc, char* argv[])
   {
     chprintf(chp,
       "Invalid argument\n"
-      "  motor-bypass [enable/disable] [0, 1, 2, 3, all]\n");
+      "  throttle-bypass [enable/disable] [0, 1, 2, 3, all]\n");
   }
 }
 
@@ -253,7 +253,7 @@ static const ShellCommand shellcmds[] =
   {"tsv", tsv},
   {"ppm", ppm_printout},
   {"mag-calibrate", mag_calibrate},
-  {"motor-bypass", motor_bypass},
+  {"throttle-bypass", throttle_bypass},
   {NULL, NULL}
 };
 
