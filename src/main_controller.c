@@ -14,9 +14,9 @@
 #include "radio_tx_rx.h"
 #include "motor_driver.h"
 #include "pid.h"
-#include "chprintf.h"
 #include "fcconf.h"
 #include "utils.h"
+#include "logger.h"
 
 /**
  * Global main controller handle
@@ -195,9 +195,7 @@ THD_FUNCTION(mainControllerThread, arg)
         if( (rc_state == RADIO_TXRX_ACTIVE) && (throttle_pcnt < THROTTLE_MIN) && (arm_switch > 5000) ) /* 50000 == 50% */
         {
           flight_state = ARMED;
-          chprintf(
-            (BaseSequentialStream*)&SD4,
-            "UNARMED -> ARMED\n");
+          LOG_DEBUG("UNARMED -> ARMED\n");
         }
 
         /*
@@ -208,9 +206,7 @@ THD_FUNCTION(mainControllerThread, arg)
         if(calibration_request_detected(calib_switch))
         {
           flight_state = CALIBRATING;
-          chprintf(
-            (BaseSequentialStream*)&SD4,
-            "UNARMED -> CALIBRATING\n");
+          LOG_DEBUG("UNARMED -> CALIBRATING\n");
         }
 
         break;
@@ -258,9 +254,7 @@ THD_FUNCTION(mainControllerThread, arg)
           calib_numpoints_read = 0;
 
           flight_state = UNARMED;
-          chprintf(
-            (BaseSequentialStream*)&SD4,
-            "CALIBRATING -> UNARMED\n");
+          LOG_DEBUG("CALIBRATING -> UNARMED\n");
         }
         break;
       }
@@ -278,17 +272,13 @@ THD_FUNCTION(mainControllerThread, arg)
         if(throttle_pcnt > THROTTLE_MIN)
         {
           flight_state = FLYING;
-          chprintf(
-            (BaseSequentialStream*)&SD4,
-            "ARMED -> FLYING\n");
+          LOG_DEBUG("ARMED -> FLYING\n");
         }
         else if(arm_switch < 5000)
         {
           /* arm switch flipped to unarmed position */
           flight_state = UNARMED;
-          chprintf(
-            (BaseSequentialStream*)&SD4,
-            "ARMED -> UNARMED\n");
+          LOG_DEBUG("ARMED -> UNARMED\n");
         }
 
         break;
@@ -323,9 +313,6 @@ THD_FUNCTION(mainControllerThread, arg)
         roll  = constrainf(roll,  -pid_sum_limit, pid_sum_limit) / 1000.0f;
         pitch = constrainf(pitch, -pid_sum_limit, pid_sum_limit) / 1000.0f;
         yaw   = constrainf(yaw,   -pid_sum_limit, pid_sum_limit) / 1000.0f;
-        // chprintf(
-        //   (BaseSequentialStream*)&SD4,
-        //   "throttle = %d\troll = %f\tpitch = %f\tyaw = %f\n", throttle_rc_sp, roll, pitch, yaw);
 
         /* determine motor duty cycles */
         float motor_cycles[MOTOR_DRIVER_MOTORS];
@@ -358,11 +345,6 @@ THD_FUNCTION(mainControllerThread, arg)
         else if(throttle_pcnt > 5000) /* throttle over 50% */
           throttle_pcnt_f = constrainf(throttle_pcnt_f, -motor_min, 1.0f - motor_max);
 
-        // chprintf(
-        //   (BaseSequentialStream*)&SD4,
-        //   "range = %0.2f\tthrottle = %0.2f\t0 = %0.2f\t1 = %0.2f\t2 = %0.2f\t3 = %0.2f\n",
-        //   motor_range, throttle_pcnt_f, motor_cycles[0], motor_cycles[1], motor_cycles[2], motor_cycles[3]);
-
         /* applyMixToMotors() in betaflight */
         for(size_t i = 0 ; i < MOTOR_DRIVER_MOTORS ; i++)
         {
@@ -377,21 +359,15 @@ THD_FUNCTION(mainControllerThread, arg)
           /* set duty cycle */
           duty_cycles[i] = (uint32_t)motor_output;
 
-          // chprintf(
-            // (BaseSequentialStream*)&SD4,
-            // "%d = %3d\t", i, motor_output/100);
+          // LOG_DEBUG("%d = %3d\t", i, motor_output/100);
         }
-        // chprintf(
-          // (BaseSequentialStream*)&SD4,
-          // "range = %0.2f\n", motor_range);
+        // LOG_DEBUG("range = %0.2f\n", motor_range);
 
         /* Throttle stick low, quad grounded */
         if(throttle_pcnt < THROTTLE_MIN)
         {
           flight_state = ARMED;
-          chprintf(
-            (BaseSequentialStream*)&SD4,
-            "FLYING -> ARMED\n");
+          LOG_DEBUG("FLYING -> ARMED\n");
         }
 
         break;
